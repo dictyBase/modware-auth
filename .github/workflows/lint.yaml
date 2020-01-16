@@ -12,5 +12,5 @@ jobs:
       - name: run linter
         uses: reviewdog/action-golangci-lint@v1
         with:
-          github_token: ${{ secrets.GH_TOKEN }}
+          github_token: ${{ secrets.github_token }}
           golangci_lint_flags: "-c .golangci.yml"
