@@ -55,6 +55,11 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 
 func (s *AuthService) Logout(ctx context.Context, t *auth.NewRefreshToken) (*empty.Empty, error) {
 	e := &empty.Empty{}
-
+	if err := t.Validate(); err != nil {
+		return e, aphgrpc.HandleInvalidParamError(ctx, err)
+	}
+	if err := s.repo.DeleteToken(t.RefreshToken); err != nil {
+		return e, aphgrpc.HandleDeleteError(ctx, err)
+	}
 	return e, nil
 }
