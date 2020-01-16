@@ -42,9 +42,12 @@ func (rs *RedisStorage) DeleteToken(keys ...string) error {
 }
 
 func (rs *RedisStorage) HasToken(key string) (bool, error) {
-	_, err := rs.client.Exists(key).Result()
+	h, err := rs.client.Exists(key).Result()
 	if err != nil {
 		return false, err
+	}
+	if h == 0 {
+		return false, nil
 	}
 	return true, nil
 }
