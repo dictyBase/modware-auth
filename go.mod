@@ -2,9 +2,11 @@ module github.com/dictyBase/modware-auth
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dictyBase/aphgrpc v1.1.2
 	github.com/dictyBase/go-genproto v0.0.0-20200115211547-651977b0b4d6
 	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
