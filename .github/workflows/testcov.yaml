@@ -1,0 +1,40 @@
+name: Test coverage
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    services:
+      redis:
+        image: redis:3.7.3
+        ports:
+          - 6379/tcp
+    steps:
+      - name: set up golang
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.11.13
+      - name: check out code
+        uses: actions/checkout@v1
+      - name: unit test
+        run: go test -covermode=atomic -coverprofile=profile.cov -v ./...
+        env:
+          REDIS_MASTER_SERVICE_HOST: localhost
+          REDIS_MASTER_SERVICE_PORT: ${{ job.services.redis.ports[6379] }}
+          GOPROXY: https://proxy.golang.org
+      - name: upload coverage to codecov
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          file: ./profile.cov
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: upload coverage to codeclimate
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CODECLIMATE_TOKEN }}
+          REDIS_MASTER_SERVICE_HOST: localhost
+          REDIS_MASTER_SERVICE_PORT: ${{ job.services.redis.ports[6379] }}
+          GOPROXY: https://proxy.golang.org
+        run: |
+          curl -L -o test-reporter https://codeclimate.com/downloads/test-reporter/test-reporter-0.6.3-linux-amd64
+          chmod +x test-reporter
+          ./test-reporter before-build
+          go test -coverprofile c.out ./...
+          ./test-reporter after-build --exit-code 0 --debug -p $(go list -m) -t gocov
