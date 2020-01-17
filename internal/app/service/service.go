@@ -68,7 +68,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if err := t.Validate(); err != nil {
 		return tkn, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
-	h, err := repo.HasToken(tkn.RefreshToken)
+	h, err := s.repo.HasToken(tkn.RefreshToken)
 	if err != nil {
 		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
 	}
