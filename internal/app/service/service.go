@@ -37,18 +37,48 @@ func NewAuthService(repo repository.AuthRepository, pub message.Publisher, opt .
 
 func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, error) {
 	a := &auth.Auth{}
+	if err := l.Validate(); err != nil {
+		return a, aphgrpc.HandleInvalidParamError(ctx, err)
+	}
+
+	// 1. generate jwt and refresh token (which is also jwt)
+	// 2. send user login data through middleware (need to expand on this)
+	// 3. return json payload with tokens, user and identity data
 
 	return a, nil
 }
 
 func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Auth, error) {
 	a := &auth.Auth{}
+	if err := l.Validate(); err != nil {
+		return a, aphgrpc.HandleInvalidParamError(ctx, err)
+	}
+
+	// 1. look up refresh token
+	// 2. verify refresh token is valid
+	// 3. fetch user/identity data based on key (user email)
+	// 4. generate new jwt
+	// 5. return json payload
 
 	return a, nil
 }
 
 func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*auth.Token, error) {
 	tkn := &auth.Token{}
+	if err := t.Validate(); err != nil {
+		return tkn, aphgrpc.HandleInvalidParamError(ctx, err)
+	}
+	h, err := repo.HasToken(tkn.RefreshToken)
+	if err != nil {
+		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
+	}
+	if !h {
+		return tkn, nil
+	}
+
+	// at this point, user has valid refresh token
+	// so need to generate JWT and new refresh token
+	// and send them back
 
 	return tkn, nil
 }
