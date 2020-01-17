@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/modware-auth/internal/message"
@@ -68,6 +69,12 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if err := t.Validate(); err != nil {
 		return tkn, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
+	// need to add:
+	// if jwt exists, validate this
+	// decode token with verifier method
+	// if valid jwt, generate new jwt
+	// then validate refresh token
+	
 	h, err := s.repo.HasToken(tkn.RefreshToken)
 	if err != nil {
 		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
