@@ -22,7 +22,7 @@ func New(alg string, signKey interface{}, verifyKey interface{}) *JWTAuth {
 	}
 }
 
-// Verify checks if a JWT string is currently valid.
+// Verify a JWT string and returns a token object
 func Verify(ja *JWTAuth, tokenString string) (*jwt.Token, error) {
 	token, err := ja.decode(tokenString)
 	if err != nil {
@@ -47,12 +47,11 @@ func Verify(ja *JWTAuth, tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-func (ja *JWTAuth) Encode(claims jwt.Claims) (*jwt.Token, string, error) {
+// Encode generate the signed jwt
+func (ja *JWTAuth) Encode(claims jwt.Claims) (string, error) {
 	tkn := jwt.New(ja.signer)
 	tkn.Claims = claims
-	tokenString, err := tkn.SignedString(ja.signKey)
-	tkn.Raw = tokenString
-	return tkn, tokenString, err
+	return tkn.SignedString(ja.signKey)
 }
 
 func (ja *JWTAuth) decode(tokenString string) (*jwt.Token, error) {
