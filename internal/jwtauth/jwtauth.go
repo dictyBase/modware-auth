@@ -4,6 +4,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
+// JWTAuth is a container for jwt authenticator manager
 type JWTAuth struct {
 	signKey   interface{}
 	verifyKey interface{}
@@ -11,8 +12,7 @@ type JWTAuth struct {
 	parser    *jwt.Parser
 }
 
-// New creates a JWTAuth authenticator instance that provides middleware handlers
-// and encoding/decoding functions for JWT signing.
+// New creates a JWTAuth authenticator instance
 func New(alg string, signKey interface{}, verifyKey interface{}) *JWTAuth {
 	return &JWTAuth{
 		signKey:   signKey,
@@ -23,7 +23,7 @@ func New(alg string, signKey interface{}, verifyKey interface{}) *JWTAuth {
 }
 
 // Verify a JWT string and returns a token object
-func Verify(ja *JWTAuth, tokenString string) (*jwt.Token, error) {
+func (ja *JWTAuth) Verify(tokenString string) (*jwt.Token, error) {
 	token, err := ja.decode(tokenString)
 	if err != nil {
 		verr, ok := err.(*jwt.ValidationError)
