@@ -1,19 +1,7 @@
 package jwtauth
 
 import (
-	"errors"
-
 	jwt "github.com/dgrijalva/jwt-go"
-)
-
-// Library errors
-var (
-	ErrUnauthorized = errors.New("jwtauth: token is unauthorized")
-	ErrExpired      = errors.New("jwtauth: token is expired")
-	ErrNBFInvalid   = errors.New("jwtauth: token nbf validation failed")
-	ErrIATInvalid   = errors.New("jwtauth: token iat validation failed")
-	ErrNoTokenFound = errors.New("jwtauth: no token found")
-	ErrAlgoInvalid  = errors.New("jwtauth: algorithm mismatch")
 )
 
 type JWTAuth struct {
@@ -38,21 +26,21 @@ func New(alg string, signKey interface{}, verifyKey interface{}) *JWTAuth {
 func Verify(ja *JWTAuth, tokenString string) (*jwt.Token, error) {
 	token, err := ja.Decode(tokenString)
 	if err != nil {
-		if verr, ok := err.(*jwt.ValidationError); ok {
-			if verr.Errors&jwt.ValidationErrorExpired > 0 {
-				return token, ErrExpired
-			} else if verr.Errors&jwt.ValidationErrorIssuedAt > 0 {
-				return token, ErrIATInvalid
-			} else if verr.Errors&jwt.ValidationErrorIssuedAt > 0 {
-				return token, ErrNBFInvalid
-			}
+		verr, ok := err.(*jwt.ValidationError)
+		switch ok {
+		case isValidationExpired(verr):
+			return token, ErrExpired
+		case isValidationIssuedAt(verr):
+			return token, ErrIATInvalid
+		case isValidationNotValidYet(verr):
+			return token, ErrNBFInvalid
+		default:
+			return token, err
 		}
-		return token, err
 	}
 
 	if token == nil || !token.Valid {
-		err = ErrUnauthorized
-		return token, err
+		return token, ErrUnauthorized
 	}
 
 	// Verify signing algorithm
