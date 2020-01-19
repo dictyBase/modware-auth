@@ -16,22 +16,13 @@ var (
 )
 
 func isValidationNotValidYet(err *jwt.ValidationError) bool {
-	if err.Errors == jwt.ValidationErrorNotValidYet {
-		return true
-	}
-	return false
+	return err.Errors == jwt.ValidationErrorNotValidYet
 }
 
 func isValidationIssuedAt(err *jwt.ValidationError) bool {
-	if err.Errors == jwt.ValidationErrorIssuedAt {
-		return true
-	}
-	return false
+	return err.Errors == jwt.ValidationErrorIssuedAt
 }
 
 func isValidationExpired(err *jwt.ValidationError) bool {
-	if err.Errors == jwt.ValidationErrorExpired {
-		return true
-	}
-	return false
+	return err.Errors == jwt.ValidationErrorExpired
 }
