@@ -35,10 +35,3 @@ func isValidationExpired(err *jwt.ValidationError) bool {
 	}
 	return false
 }
-
-func isValidationError(err error) bool {
-	if _, ok := err.(*jwt.ValidationError); ok {
-		return true
-	}
-	return false
-}
