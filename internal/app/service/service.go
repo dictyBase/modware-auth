@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/rsa"
+
+	"github.com/go-playground/validator/v10"
 
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
@@ -13,8 +16,19 @@ import (
 // AuthService is the container for managing auth service definitions
 type AuthService struct {
 	*aphgrpc.Service
-	repo      repository.AuthRepository
-	publisher message.Publisher
+	repo       repository.AuthRepository
+	publisher  message.Publisher
+	publicKey  *rsa.PublicKey
+	privateKey *rsa.PrivateKey
+}
+
+// ServiceParams are the attributes that are required for creating a new AuthService
+type ServiceParams struct {
+	Repository repository.AuthRepository `validate:"required"`
+	Publisher  message.Publisher         `validate:"required"`
+	PublicKey  *rsa.PublicKey            `validate:"required"`
+	PrivateKey *rsa.PrivateKey           `validate:"required"`
+	Options    []aphgrpc.Option          `validate:"required"`
 }
 
 func defaultOptions() *aphgrpc.ServiceOptions {
@@ -22,18 +36,23 @@ func defaultOptions() *aphgrpc.ServiceOptions {
 }
 
 // NewAuthService is the constructor for creating a new instance of AuthService
-func NewAuthService(repo repository.AuthRepository, pub message.Publisher, opt ...aphgrpc.Option) *AuthService {
+func NewAuthService(srvP *ServiceParams) (*AuthService, error) {
+	if err := validator.New().Struct(srvP); err != nil {
+		return &AuthService{}, err
+	}
 	so := defaultOptions()
-	for _, optfn := range opt {
+	for _, optfn := range srvP.Options {
 		optfn(so)
 	}
 	srv := &aphgrpc.Service{}
 	aphgrpc.AssignFieldsToStructs(so, srv)
 	return &AuthService{
-		Service:   srv,
-		repo:      repo,
-		publisher: pub,
-	}
+		Service:    srv,
+		repo:       srvP.Repository,
+		publisher:  srvP.Publisher,
+		publicKey:  srvP.PublicKey,
+		privateKey: srvP.PrivateKey,
+	}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, error) {
