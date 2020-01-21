@@ -117,6 +117,36 @@ func TestVerify(t *testing.T) {
 
 	ja.signer = jwt.SigningMethodES256
 	_, err = ja.Verify(val)
-	assert.Error(err, "expect error when signing algorithms are different")
+	assert.IsType(ErrAlgoInvalid, err, "expect error when signing algorithms are different")
 
+}
+
+func TestVerifySignature(t *testing.T) {
+	assert := assert.New(t)
+	private, public, err := generateKeys()
+	if err != nil {
+		t.Error(err)
+	}
+	ja := NewJwtAuth(jwt.SigningMethodRS512, private, public)
+	claims := jwt.StandardClaims{
+		Issuer:    "dictyBase",
+		Subject:   "dictyBase login token",
+		ExpiresAt: time.Now().Add(time.Hour * 240).Unix(),
+		IssuedAt:  time.Now().Unix(),
+		NotBefore: time.Now().Unix(),
+		Id:        xid.New().String(),
+		Audience:  "user",
+	}
+	val, err := ja.Encode(claims)
+	assert.NoError(err, "expect no error for jwt encoding")
+	_, err = ja.Verify(val)
+	assert.NoError(err, "expect no error when verifying valid jwt")
+
+	private2, public2, err := generateKeys()
+	if err != nil {
+		t.Error(err)
+	}
+	ja2 := NewJwtAuth(jwt.SigningMethodRS512, private2, public2)
+	_, err = ja2.Verify(val)
+	assert.IsType(ErrInvalidSignature, err, "expect to be unauthorized error")
 }
