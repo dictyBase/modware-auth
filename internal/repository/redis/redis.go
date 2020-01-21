@@ -37,8 +37,15 @@ func (rs *RedisStorage) SetToken(key, val string, time time.Duration) error {
 	return rs.client.Set(key, val, time).Err()
 }
 
-func (rs *RedisStorage) DeleteToken(keys ...string) error {
-	return rs.client.Del(keys...).Err()
+func (rs *RedisStorage) DeleteToken(key string) error {
+	val, err := rs.client.Del(key).Result()
+	if err != nil {
+		return err
+	}
+	if val == 0 {
+		return fmt.Errorf("token does not exist")
+	}
+	return nil
 }
 
 func (rs *RedisStorage) HasToken(key string) (bool, error) {

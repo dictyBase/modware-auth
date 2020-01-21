@@ -87,6 +87,8 @@ func TestDeleteToken(t *testing.T) {
 	assert.NoError(err, "error in setting token")
 	err = repo.DeleteToken("art")
 	assert.NoError(err, "error in deleting token")
+	err = repo.DeleteToken("cheever")
+	assert.Error(err, "error deleting nonexistent token")
 }
 
 func TestHasToken(t *testing.T) {
