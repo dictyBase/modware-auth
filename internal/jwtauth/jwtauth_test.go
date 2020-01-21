@@ -114,4 +114,9 @@ func TestVerify(t *testing.T) {
 
 	_, err = ja.Verify("")
 	assert.Error(err, "expect error with empty token string")
+
+	ja.signer = jwt.SigningMethodES256
+	_, err = ja.Verify(val)
+	assert.Error(err, "expect error when signing algorithms are different")
+
 }
