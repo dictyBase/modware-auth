@@ -52,7 +52,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	ja := New("RSA", private, public)
+	ja := New(jwt.SigningMethodRS512, private, public)
 	claims := jwt.StandardClaims{
 		Issuer:    "dictyBase",
 		Subject:   "dictyBase login token",
