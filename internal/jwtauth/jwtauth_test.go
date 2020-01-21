@@ -69,7 +69,17 @@ func TestVerify(t *testing.T) {
 	assert.NoError(err, "expect no error for jwt encoding")
 	_, err = ja.Verify(val)
 	assert.NoError(err, "expect no error when verifying valid jwt")
+	_, err = ja.Verify("")
+	assert.Error(err, "expect error with empty token string")
+}
 
+func TestVerifyClaims(t *testing.T) {
+	assert := assert.New(t)
+	private, public, err := generateKeys()
+	if err != nil {
+		t.Error(err)
+	}
+	ja := NewJwtAuth(jwt.SigningMethodRS512, private, public)
 	claimsBadExpiresAt := jwt.StandardClaims{
 		Issuer:    "dictyBase",
 		Subject:   "dictyBase login token",
@@ -79,9 +89,9 @@ func TestVerify(t *testing.T) {
 		Id:        xid.New().String(),
 		Audience:  "user",
 	}
-	val2, err := ja.Encode(claimsBadExpiresAt)
+	val, err := ja.Encode(claimsBadExpiresAt)
 	assert.NoError(err, "expect no error for jwt encoding")
-	_, err = ja.Verify(val2)
+	_, err = ja.Verify(val)
 	assert.IsType(ErrExpired, err, "expect a jwt expired error")
 
 	claimsBadIssuedAt := jwt.StandardClaims{
@@ -93,9 +103,9 @@ func TestVerify(t *testing.T) {
 		Id:        xid.New().String(),
 		Audience:  "user",
 	}
-	val3, err := ja.Encode(claimsBadIssuedAt)
+	val2, err := ja.Encode(claimsBadIssuedAt)
 	assert.NoError(err, "expect no error for jwt encoding")
-	_, err = ja.Verify(val3)
+	_, err = ja.Verify(val2)
 	assert.IsType(ErrIATInvalid, err, "expect error with bad issued at time")
 
 	claimsBadNotBefore := jwt.StandardClaims{
@@ -107,14 +117,10 @@ func TestVerify(t *testing.T) {
 		Id:        xid.New().String(),
 		Audience:  "user",
 	}
-	val4, err := ja.Encode(claimsBadNotBefore)
+	val3, err := ja.Encode(claimsBadNotBefore)
 	assert.NoError(err, "expect no error for jwt encoding")
-	_, err = ja.Verify(val4)
+	_, err = ja.Verify(val3)
 	assert.IsType(ErrNBFInvalid, err, "expect error with not valid yet token")
-
-	_, err = ja.Verify("")
-	assert.Error(err, "expect error with empty token string")
-
 }
 
 func TestVerifySignature(t *testing.T) {
