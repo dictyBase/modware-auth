@@ -82,7 +82,7 @@ func TestVerify(t *testing.T) {
 	val2, err := ja.Encode(claimsBadExpiresAt)
 	assert.NoError(err, "expect no error for jwt encoding")
 	_, err = ja.Verify(val2)
-	assert.Error(err, "expect error with expired jwt token")
+	assert.IsType(ErrExpired, err, "expect a jwt expired error")
 
 	claimsBadIssuedAt := jwt.StandardClaims{
 		Issuer:    "dictyBase",
@@ -96,7 +96,7 @@ func TestVerify(t *testing.T) {
 	val3, err := ja.Encode(claimsBadIssuedAt)
 	assert.NoError(err, "expect no error for jwt encoding")
 	_, err = ja.Verify(val3)
-	assert.Error(err, "expect error with bad issued at time")
+	assert.IsType(ErrIATInvalid, err, "expect error with bad issued at time")
 
 	claimsBadNotBefore := jwt.StandardClaims{
 		Issuer:    "dictyBase",
@@ -110,7 +110,7 @@ func TestVerify(t *testing.T) {
 	val4, err := ja.Encode(claimsBadNotBefore)
 	assert.NoError(err, "expect no error for jwt encoding")
 	_, err = ja.Verify(val4)
-	assert.Error(err, "expect error with not valid yet token")
+	assert.IsType(ErrNBFInvalid, err, "expect error with not valid yet token")
 
 	_, err = ja.Verify("")
 	assert.Error(err, "expect error with empty token string")
