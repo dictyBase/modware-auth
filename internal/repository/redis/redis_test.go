@@ -99,6 +99,6 @@ func TestHasToken(t *testing.T) {
 	assert.NoError(err, "error finding token")
 	assert.True(lookup, "should find previously set token")
 	badLookup, err := repo.HasToken("obrien-murphy")
-	assert.Error(err, "error finding token ")
+	assert.NoError(err, "error finding token ")
 	assert.False(badLookup, "should not find random token")
 }
