@@ -1,11 +1,8 @@
 package jwtauth
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"testing"
 	"time"
@@ -16,35 +13,20 @@ import (
 )
 
 // Generate RSA public and private keys in PEM format
-func generateKeys() (string, string, error) {
-	var prv, pub bytes.Buffer
+func generateKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return prv.String(), pub.String(), fmt.Errorf("error in generating key %s", err)
+		return private, new(rsa.PublicKey), fmt.Errorf("error in generating key %s", err)
 	}
 	if err := private.Validate(); err != nil {
-		return prv.String(), pub.String(), fmt.Errorf("error in validating private key %s", err)
-	}
-	prvPem := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(private),
+		return private, new(rsa.PublicKey), fmt.Errorf("error in validating private key %s", err)
 	}
 	public := private.Public()
-	pubCont, err := x509.MarshalPKIXPublicKey(public)
-	if err != nil {
-		return prv.String(), pub.String(), fmt.Errorf("unable to marshall private key %s", err)
+	rsaPub, ok := public.(*rsa.PublicKey)
+	if !ok {
+		return private, new(rsa.PublicKey), fmt.Errorf("unable to convert to rsa public key")
 	}
-	pubPem := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: pubCont,
-	}
-	if err := pem.Encode(&prv, prvPem); err != nil {
-		return prv.String(), pub.String(), fmt.Errorf("unable to write private key %s", err)
-	}
-	if err := pem.Encode(&pub, pubPem); err != nil {
-		return prv.String(), pub.String(), fmt.Errorf("unable to write public key %s", err)
-	}
-	return prv.String(), pub.String(), nil
+	return private, rsaPub, nil
 }
 
 func TestEncode(t *testing.T) {
@@ -52,7 +34,7 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	ja := New(jwt.SigningMethodRS512, private, public)
+	ja := NewJwtAuth(jwt.SigningMethodRS512, private, public)
 	claims := jwt.StandardClaims{
 		Issuer:    "dictyBase",
 		Subject:   "dictyBase login token",
