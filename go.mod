@@ -11,6 +11,7 @@ require (
 	github.com/go-chi/cors v1.0.0 // indirect
 	github.com/go-chi/jwtauth v4.0.3+incompatible // indirect
 	github.com/go-redis/redis v6.15.6+incompatible
+	github.com/go-redis/redis/v7 v7.0.0-beta.5
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.4.0 // indirect
