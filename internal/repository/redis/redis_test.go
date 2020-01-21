@@ -63,80 +63,42 @@ func TestMain(m *testing.M) {
 func TestSetToken(t *testing.T) {
 	assert := assert.New(t)
 	repo, err := NewAuthRepo(redisAddr)
-	if err != nil {
-		t.Fatalf("error connecting to redis")
-	}
-	if err := repo.SetToken("art", "vandelay", 0); err != nil {
-		t.Fatalf("error in setting token %s", err)
-	}
-	b, err := repo.HasToken("art")
-	if err != nil {
-		t.Fatalf("error finding token %s", err)
-	}
-	assert.True(b, "should find freshly set token")
-	if err := repo.DeleteToken("art"); err != nil {
-		t.Fatalf("error in deleting token %s", err)
-	}
+	assert.NoError(err, "error connecting to redis")
+	err = repo.SetToken("art", "vandelay", 0)
+	assert.NoError(err, "error in setting token")
 }
 
 func TestGetToken(t *testing.T) {
 	assert := assert.New(t)
 	repo, err := NewAuthRepo(redisAddr)
-	if err != nil {
-		t.Fatalf("error connecting to redis")
-	}
-	if err := repo.SetToken("art", "vandelay", 0); err != nil {
-		t.Fatalf("error in setting token %s", err)
-	}
+	assert.NoError(err, "error connecting to redis")
+	err = repo.SetToken("art", "vandelay", 0)
+	assert.NoError(err, "error in setting token")
 	token, err := repo.GetToken("art")
-	if err != nil {
-		t.Fatalf("error getting token %s", err)
-	}
+	assert.NoError(err, "error getting token")
 	assert.Equal(token, "vandelay", "should retrieve correct value")
-	if err := repo.DeleteToken("art"); err != nil {
-		t.Fatalf("error in deleting token %s", err)
-	}
 }
 
 func TestDeleteToken(t *testing.T) {
 	assert := assert.New(t)
 	repo, err := NewAuthRepo(redisAddr)
-	if err != nil {
-		t.Fatalf("error connecting to redis")
-	}
-	if err := repo.SetToken("art", "vandelay", 0); err != nil {
-		t.Fatalf("error in setting token %s", err)
-	}
-	if err := repo.DeleteToken("art"); err != nil {
-		t.Fatalf("error in deleting token %s", err)
-	}
-	lookup, err := repo.HasToken("art")
-	if err != nil {
-		t.Fatalf("error finding token %s", err)
-	}
-	assert.False(lookup, "should not find token")
+	assert.NoError(err, "error connecting to redis")
+	err = repo.SetToken("art", "vandelay", 0)
+	assert.NoError(err, "error in setting token")
+	err = repo.DeleteToken("art")
+	assert.NoError(err, "error in deleting token")
 }
 
 func TestHasToken(t *testing.T) {
 	assert := assert.New(t)
 	repo, err := NewAuthRepo(redisAddr)
-	if err != nil {
-		t.Fatalf("error connecting to redis")
-	}
-	if err := repo.SetToken("art", "vandelay", 0); err != nil {
-		t.Fatalf("error in setting token %s", err)
-	}
+	assert.NoError(err, "error connecting to redis")
+	err = repo.SetToken("art", "vandelay", 0)
+	assert.NoError(err, "error in setting token")
 	lookup, err := repo.HasToken("art")
-	if err != nil {
-		t.Fatalf("error finding token %s", err)
-	}
+	assert.NoError(err, "error finding token")
 	assert.True(lookup, "should find previously set token")
 	badLookup, err := repo.HasToken("obrien-murphy")
-	if err != nil {
-		t.Fatalf("error finding token %s", err)
-	}
+	assert.Error(err, "error finding token ")
 	assert.False(badLookup, "should not find random token")
-	if err := repo.DeleteToken("art"); err != nil {
-		t.Fatalf("error in deleting token %s", err)
-	}
 }
