@@ -1,23 +1,25 @@
 package jwtauth
 
 import (
+	"crypto/rsa"
+
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
 // JWTAuth is a container for jwt authenticator manager
 type JWTAuth struct {
-	signKey   interface{}
-	verifyKey interface{}
-	signer    jwt.SigningMethod
+	signKey   *rsa.PrivateKey
+	verifyKey *rsa.PublicKey
 	parser    *jwt.Parser
+	signer    jwt.SigningMethod
 }
 
-// New creates a JWTAuth authenticator instance
-func New(alg string, signKey interface{}, verifyKey interface{}) *JWTAuth {
+// NewJwtAuth creates a JWTAuth authenticator instance
+func NewJwtAuth(alg jwt.SigningMethod, signKey *rsa.PrivateKey, verifyKey *rsa.PublicKey) *JWTAuth {
 	return &JWTAuth{
 		signKey:   signKey,
 		verifyKey: verifyKey,
-		signer:    jwt.GetSigningMethod(alg),
+		signer:    alg,
 		parser:    &jwt.Parser{},
 	}
 }
