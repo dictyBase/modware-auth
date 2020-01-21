@@ -36,6 +36,8 @@ func (ja *JWTAuth) Verify(tokenString string) (*jwt.Token, error) {
 			return token, ErrIATInvalid
 		case isValidationNotValidYet(verr):
 			return token, ErrNBFInvalid
+		case isInvalidSignature(verr):
+			return token, ErrInvalidSignature
 		default:
 			return token, err
 		}
