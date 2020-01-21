@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	r "github.com/go-redis/redis"
+	r "github.com/go-redis/redis/v7"
 	"github.com/stretchr/testify/assert"
 )
 
