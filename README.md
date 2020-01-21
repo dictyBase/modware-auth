@@ -3,7 +3,6 @@
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](LICENSE)  
 ![GitHub action](https://github.com/dictyBase/modware-auth/workflows/Test%20coverage/badge.svg)
 [![codecov](https://codecov.io/gh/dictyBase/modware-auth/branch/develop/graph/badge.svg)](https://codecov.io/gh/dictyBase/modware-auth)  
-[![Test Coverage](https://api.codeclimate.com/v1/badges/21ed283a6186cfa3d003/test_coverage)](https://codeclimate.com/github/dictyBase/modware-auth/test_coverage)
 [![Technical debt](https://badgen.net/codeclimate/tech-debt/dictyBase/modware-auth)](https://codeclimate.com/github/dictyBase/modware-auth/trends/technical_debt)
 [![Issues](https://badgen.net/codeclimate/issues/dictyBase/modware-auth)](https://codeclimate.com/github/dictyBase/modware-auth/issues)
 [![Maintainability](https://api.codeclimate.com/v1/badges/21ed283a6186cfa3d003/maintainability)](https://codeclimate.com/github/dictyBase/modware-auth/maintainability)
