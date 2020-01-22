@@ -3,14 +3,19 @@ package service
 import (
 	"context"
 	"crypto/rsa"
+	"time"
+
+	"github.com/dictyBase/modware-auth/internal/jwtauth"
 
 	"github.com/go-playground/validator/v10"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/modware-auth/internal/repository"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/rs/xid"
 )
 
 // AuthService is the container for managing auth service definitions
@@ -90,11 +95,12 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	}
 	// need to add:
 	// if jwt exists, validate this
-	// decode token with verifier method
+	// decode token with Verify method
 	// if valid jwt, generate new jwt
 	// then validate refresh token
 
-	h, err := s.repo.HasToken(tkn.RefreshToken)
+	// should we look up by email instead? // email-JWT (key-value)
+	h, err := s.repo.HasToken(t.RefreshToken)
 	if err != nil {
 		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
 	}
@@ -102,10 +108,37 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkn, nil
 	}
 
-	// at this point, user has valid refresh token
-	// so need to generate JWT and new refresh token
-	// and send them back
+	claims := jwt.StandardClaims{
+		Issuer:    "dictyBase",
+		Subject:   "dictyBase login token",
+		ExpiresAt: time.Now().Add(time.Hour * 360).Unix(),
+		IssuedAt:  time.Now().Unix(),
+		NotBefore: time.Now().Unix(),
+		Id:        xid.New().String(),
+		Audience:  "user",
+	}
 
+	// user's refresh token is valid
+	// so generate new JWT and refresh token to send back
+	newTkn := jwtauth.NewJwtAuth(jwt.SigningMethodRS512, s.privateKey, s.publicKey)
+	tknStr, err := newTkn.Encode(claims)
+	if err != nil {
+		return tkn, aphgrpc.HandleError(ctx, err)
+	}
+	tkn.Token = tknStr
+
+	newRefTkn := jwtauth.NewJwtAuth(jwt.SigningMethodRS512, s.privateKey, s.publicKey)
+	refStr, err := newRefTkn.Encode(claims)
+	if err != nil {
+		return tkn, aphgrpc.HandleError(ctx, err)
+	}
+	tkn.RefreshToken = refStr
+
+	// put refresh token in repository
+	// need to get user's email for this
+	if err := s.repo.SetToken(refStr, "email", time.Hour*24*30); err != nil {
+		return tkn, aphgrpc.HandleInsertError(ctx, err)
+	}
 	return tkn, nil
 }
 
