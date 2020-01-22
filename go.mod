@@ -4,14 +4,9 @@ require (
 	cloud.google.com/go v0.51.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dictyBase/aphgrpc v1.1.2
-	github.com/dictyBase/apihelpers v0.0.0-20191119134328-9ff59ee4c896 // indirect
-	github.com/dictyBase/authserver v3.0.1+incompatible // indirect
+	github.com/dictyBase/apihelpers v0.0.0-20191119134328-9ff59ee4c896
 	github.com/dictyBase/go-genproto v0.0.0-20200115211547-651977b0b4d6
-	github.com/go-chi/chi v4.0.3+incompatible // indirect
-	github.com/go-chi/cors v1.0.0 // indirect
-	github.com/go-chi/jwtauth v4.0.3+incompatible // indirect
 	github.com/go-playground/validator/v10 v10.0.1
-	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.2
@@ -27,6 +22,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d // indirect
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
+	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6
 	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
 	google.golang.org/genproto v0.0.0-20200115191322-ca5a22157cba // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
