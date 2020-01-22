@@ -13,6 +13,7 @@ import (
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/modware-auth/internal/message"
+	"github.com/dictyBase/modware-auth/internal/oauth"
 	"github.com/dictyBase/modware-auth/internal/repository"
 	"github.com/golang/protobuf/ptypes/empty"
 )
@@ -25,17 +26,19 @@ const (
 // AuthService is the container for managing auth service definitions
 type AuthService struct {
 	*aphgrpc.Service
-	repo      repository.AuthRepository
-	publisher message.Publisher
-	jwtAuth   jwtauth.JWTAuth
+	repo            repository.AuthRepository
+	publisher       message.Publisher
+	jwtAuth         jwtauth.JWTAuth
+	providerSecrets oauth.ProviderSecrets
 }
 
 // ServiceParams are the attributes that are required for creating a new AuthService
 type ServiceParams struct {
-	Repository repository.AuthRepository `validate:"required"`
-	Publisher  message.Publisher         `validate:"required"`
-	JWTAuth    jwtauth.JWTAuth           `validate:"required"`
-	Options    []aphgrpc.Option          `validate:"required"`
+	Repository      repository.AuthRepository `validate:"required"`
+	Publisher       message.Publisher         `validate:"required"`
+	JWTAuth         jwtauth.JWTAuth           `validate:"required"`
+	ProviderSecrets oauth.ProviderSecrets     `validate:"required"`
+	Options         []aphgrpc.Option          `validate:"required"`
 }
 
 func defaultOptions() *aphgrpc.ServiceOptions {
@@ -54,9 +57,10 @@ func NewAuthService(srvP *ServiceParams) (*AuthService, error) {
 	srv := &aphgrpc.Service{}
 	aphgrpc.AssignFieldsToStructs(so, srv)
 	return &AuthService{
-		Service: srv,
-		repo:    srvP.Repository,
-		jwtAuth: srvP.JWTAuth,
+		Service:         srv,
+		repo:            srvP.Repository,
+		jwtAuth:         srvP.JWTAuth,
+		providerSecrets: srvP.ProviderSecrets,
 	}, nil
 }
 
@@ -66,8 +70,8 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		return a, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
 
-	// 1. generate jwt and refresh token (which is also jwt)
-	// 2. send user login data through middleware (need to expand on this)
+	// 1. send user login data through middleware (need to expand on this)
+	// 2. generate jwt and refresh token (which is also jwt)
 	// 3. return json payload with tokens, user and identity data
 
 	return a, nil
