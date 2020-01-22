@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/dictyBase/modware-auth/internal/jwtauth"
@@ -14,7 +15,6 @@ import (
 	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/modware-auth/internal/repository"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/rs/xid"
 )
 
 const (
@@ -93,55 +93,48 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if err := t.Validate(); err != nil {
 		return tkn, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
-	// need to add:
-	// if jwt exists, Verify
-	// if valid jwt, generate new jwt
-	// then validate refresh token
-	// verify existence of refresh token
-	// verify validity of refresh token
-	// then will be ready to generate new jwt and refresh token
-	// make two small methods for generating claims
-	// one will be custom claims with user data
-	// publish
-
-	// should we look up by email instead? // email-JWT (key-value)
-	h, err := s.repo.HasToken(t.RefreshToken)
+	// if jwt exists, verify it is valid
+	if t.Token != "" {
+		_, err := s.jwtAuth.Verify(t.Token)
+		if err != nil {
+			return tkn, aphgrpc.HandleError(ctx, err)
+		}
+	}
+	// verify refresh token
+	r, err := s.jwtAuth.Verify(t.RefreshToken)
+	if err != nil {
+		return tkn, aphgrpc.HandleError(ctx, err)
+	}
+	// get the claims from decoded refresh token
+	c := r.Claims.(jwt.MapClaims)
+	email := fmt.Sprintf("%v", c["email"])
+	// verify existence of refresh token in repository
+	h, err := s.repo.HasToken(email)
 	if err != nil {
 		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	if !h {
 		return tkn, nil
 	}
-
-	claims := jwt.StandardClaims{
-		Issuer:    "dictyBase",
-		Subject:   "dictyBase login token",
-		ExpiresAt: time.Now().Add(time.Hour * jwtExpirationTimeInHours).Unix(), // 15 days
-		IssuedAt:  time.Now().Unix(),
-		NotBefore: time.Now().Unix(),
-		Id:        xid.New().String(),
-		Audience:  "user",
-	}
-
-	// user's refresh token is valid
-	// so generate new JWT and refresh token to send back
-	tknStr, err := s.jwtAuth.Encode(claims)
+	// generate new claims
+	jwtClaims := generateJWTClaims()
+	refTknClaims := generateRefreshTokenClaims(email)
+	// generate new JWT and refresh token to send back
+	tknStr, err := s.jwtAuth.Encode(jwtClaims)
 	if err != nil {
 		return tkn, aphgrpc.HandleError(ctx, err)
 	}
 	tkn.Token = tknStr
-
-	refStr, err := s.jwtAuth.Encode(claims)
+	refTknStr, err := s.jwtAuth.Encode(refTknClaims)
 	if err != nil {
 		return tkn, aphgrpc.HandleError(ctx, err)
 	}
-	tkn.RefreshToken = refStr
-
-	// put refresh token in repository
-	// need to get user's email for this
-	if err := s.repo.SetToken(refStr, "email", time.Hour*24*30); err != nil {
+	tkn.RefreshToken = refTknStr
+	// store refresh token in repository
+	if err := s.repo.SetToken(email, refTknStr, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
 		return tkn, aphgrpc.HandleInsertError(ctx, err)
 	}
+	s.publisher.PublishTokens(s.Topics["tokenCreate"], tkn)
 	return tkn, nil
 }
 
