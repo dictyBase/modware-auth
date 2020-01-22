@@ -117,7 +117,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkn, nil
 	}
 	// generate new claims
-	jwtClaims := generateJWTClaims()
+	jwtClaims := generateStandardClaims(jwtExpirationTimeInHours)
 	refTknClaims := generateRefreshTokenClaims(email)
 	// generate new JWT and refresh token to send back
 	tknStr, err := s.jwtAuth.Encode(jwtClaims)
@@ -134,7 +134,9 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if err := s.repo.SetToken(email, refTknStr, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
 		return tkn, aphgrpc.HandleInsertError(ctx, err)
 	}
-	s.publisher.PublishTokens(s.Topics["tokenCreate"], tkn)
+	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkn); err != nil {
+		return tkn, aphgrpc.HandleError(ctx, err)
+	}
 	return tkn, nil
 }
 
