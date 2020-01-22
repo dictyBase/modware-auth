@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/rsa"
 	"time"
 
 	"github.com/dictyBase/modware-auth/internal/jwtauth"
@@ -18,21 +17,24 @@ import (
 	"github.com/rs/xid"
 )
 
+const (
+	jwtExpirationTimeInHours          = 360 // 15 days
+	refreshTokenExpirationTimeInHours = 720 // 30 days
+)
+
 // AuthService is the container for managing auth service definitions
 type AuthService struct {
 	*aphgrpc.Service
-	repo       repository.AuthRepository
-	publisher  message.Publisher
-	publicKey  *rsa.PublicKey
-	privateKey *rsa.PrivateKey
+	repo      repository.AuthRepository
+	publisher message.Publisher
+	jwtAuth   jwtauth.JWTAuth
 }
 
 // ServiceParams are the attributes that are required for creating a new AuthService
 type ServiceParams struct {
 	Repository repository.AuthRepository `validate:"required"`
 	Publisher  message.Publisher         `validate:"required"`
-	PublicKey  *rsa.PublicKey            `validate:"required"`
-	PrivateKey *rsa.PrivateKey           `validate:"required"`
+	JWTAuth    jwtauth.JWTAuth           `validate:"required"`
 	Options    []aphgrpc.Option          `validate:"required"`
 }
 
@@ -52,11 +54,9 @@ func NewAuthService(srvP *ServiceParams) (*AuthService, error) {
 	srv := &aphgrpc.Service{}
 	aphgrpc.AssignFieldsToStructs(so, srv)
 	return &AuthService{
-		Service:    srv,
-		repo:       srvP.Repository,
-		publisher:  srvP.Publisher,
-		publicKey:  srvP.PublicKey,
-		privateKey: srvP.PrivateKey,
+		Service: srv,
+		repo:    srvP.Repository,
+		jwtAuth: srvP.JWTAuth,
 	}, nil
 }
 
@@ -94,10 +94,15 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkn, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
 	// need to add:
-	// if jwt exists, validate this
-	// decode token with Verify method
+	// if jwt exists, Verify
 	// if valid jwt, generate new jwt
 	// then validate refresh token
+	// verify existence of refresh token
+	// verify validity of refresh token
+	// then will be ready to generate new jwt and refresh token
+	// make two small methods for generating claims
+	// one will be custom claims with user data
+	// publish
 
 	// should we look up by email instead? // email-JWT (key-value)
 	h, err := s.repo.HasToken(t.RefreshToken)
@@ -111,7 +116,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	claims := jwt.StandardClaims{
 		Issuer:    "dictyBase",
 		Subject:   "dictyBase login token",
-		ExpiresAt: time.Now().Add(time.Hour * 360).Unix(),
+		ExpiresAt: time.Now().Add(time.Hour * jwtExpirationTimeInHours).Unix(), // 15 days
 		IssuedAt:  time.Now().Unix(),
 		NotBefore: time.Now().Unix(),
 		Id:        xid.New().String(),
@@ -120,15 +125,13 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 
 	// user's refresh token is valid
 	// so generate new JWT and refresh token to send back
-	newTkn := jwtauth.NewJwtAuth(jwt.SigningMethodRS512, s.privateKey, s.publicKey)
-	tknStr, err := newTkn.Encode(claims)
+	tknStr, err := s.jwtAuth.Encode(claims)
 	if err != nil {
 		return tkn, aphgrpc.HandleError(ctx, err)
 	}
 	tkn.Token = tknStr
 
-	newRefTkn := jwtauth.NewJwtAuth(jwt.SigningMethodRS512, s.privateKey, s.publicKey)
-	refStr, err := newRefTkn.Encode(claims)
+	refStr, err := s.jwtAuth.Encode(claims)
 	if err != nil {
 		return tkn, aphgrpc.HandleError(ctx, err)
 	}
