@@ -4,10 +4,10 @@ import (
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 )
 
-// Publisher manages publishing of message
+// Publisher manages the publishing of messages
 type Publisher interface {
-	// Publis publishes the auth object using the given subject
-	Publish(subject string, ann *auth.Auth) error
+	// PublishTokens publishes the token object using the given subject
+	PublishTokens(subject string, token *auth.Token) error
 	// Close closes the connection to the underlying messaging server
 	Close() error
 }
