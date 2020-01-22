@@ -54,7 +54,7 @@ func GetOrcidUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) (
 	}
 	nu = &user.NormalizedUser{
 		Name:     orcid.Name,
-		Id:       orcid.Orcid,
+		ID:       orcid.Orcid,
 		Provider: "orcid",
 	}
 	return nu, nil
@@ -78,6 +78,7 @@ func GetGoogleUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) 
 	if err != nil {
 		return nu, apherror.ErrUserRetrieval.New(err.Error())
 	}
+	defer resp.Body.Close()
 	var google user.GoogleUser
 	if err := json.NewDecoder(resp.Body).Decode(&google); err != nil {
 		return nu, apherror.ErrJSONEncoding.New(err.Error())
@@ -85,7 +86,7 @@ func GetGoogleUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) 
 	nu = &user.NormalizedUser{
 		Name:     google.Name,
 		Email:    google.Email,
-		Id:       google.Id,
+		ID:       google.ID,
 		Provider: "google",
 	}
 	return nu, nil
@@ -109,6 +110,7 @@ func GetLinkedInUser(ctx context.Context, nl *auth.NewLogin, clientSecret string
 	if err != nil {
 		return nu, apherror.ErrUserRetrieval.New(err.Error())
 	}
+	defer resp.Body.Close()
 	var linkedin user.LinkedInUser
 	if err := json.NewDecoder(resp.Body).Decode(&linkedin); err != nil {
 		return nu, apherror.ErrJSONEncoding.New(err.Error())
@@ -116,7 +118,7 @@ func GetLinkedInUser(ctx context.Context, nl *auth.NewLogin, clientSecret string
 	nu = &user.NormalizedUser{
 		Name:     fmt.Sprintf("%s %s", linkedin.FirstName, linkedin.LastName),
 		Email:    linkedin.EmailAddress,
-		Id:       linkedin.Id,
+		ID:       linkedin.ID,
 		Provider: "linkedin",
 	}
 	return nu, nil
