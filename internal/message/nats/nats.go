@@ -25,8 +25,8 @@ func NewPublisher(host, port string, options ...gnats.Option) (message.Publisher
 	return &natsPublisher{econn: ec}, nil
 }
 
-func (n *natsPublisher) Publish(subj string, a *auth.Auth) error {
-	return n.econn.Publish(subj, a)
+func (n *natsPublisher) PublishTokens(subj string, t *auth.Token) error {
+	return n.econn.Publish(subj, t)
 }
 
 func (n *natsPublisher) Close() error {
