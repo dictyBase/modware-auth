@@ -6,14 +6,12 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
-	"github.com/dictyBase/apihelpers/apherror"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/go-genproto/dictybaseapis/pubsub"
 	"github.com/dictyBase/modware-auth/internal/jwtauth"
 	"github.com/dictyBase/modware-auth/internal/oauth"
 	"github.com/dictyBase/modware-auth/internal/user"
 	"github.com/rs/xid"
-	"google.golang.org/grpc/status"
 )
 
 type RefreshTokenClaims struct {
@@ -22,6 +20,7 @@ type RefreshTokenClaims struct {
 	identity string
 	// provider is the login provider
 	provider string
+	// Standard JWT claims
 	jwt.StandardClaims
 }
 
@@ -32,11 +31,11 @@ type ProviderLogin struct {
 	providerSecrets oauth.ProviderSecrets
 }
 
-func generateStandardClaims(expirationHours time.Duration) jwt.StandardClaims {
+func generateStandardClaims(expirationMinutes time.Duration) jwt.StandardClaims {
 	return jwt.StandardClaims{
 		Issuer:    "dictyBase",
 		Subject:   "dictyBase login token",
-		ExpiresAt: time.Now().Add(time.Hour * expirationHours).Unix(),
+		ExpiresAt: time.Now().Add(time.Minute * expirationMinutes).Unix(),
 		IssuedAt:  time.Now().Unix(),
 		NotBefore: time.Now().Unix(),
 		Id:        xid.New().String(),
@@ -48,14 +47,14 @@ func generateRefreshTokenClaims(identity string, provider string) RefreshTokenCl
 	return RefreshTokenClaims{
 		identity,
 		provider,
-		generateStandardClaims(refreshTokenExpirationTimeInHours),
+		generateStandardClaims(refreshTokenExpirationTimeInMins),
 	}
 }
 
 func generateBothTokens(ctx context.Context, identity string, provider string, j jwtauth.JWTAuth) (*auth.Token, error) {
 	tkn := &auth.Token{}
 	// generate new claims
-	jwtClaims := generateStandardClaims(jwtExpirationTimeInHours)
+	jwtClaims := generateStandardClaims(jwtExpirationTimeInMins)
 	refTknClaims := generateRefreshTokenClaims(identity, provider)
 	// generate new JWT and refresh token to send back
 	tknStr, err := j.Encode(jwtClaims)
@@ -76,19 +75,19 @@ func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
 	provider := p.provider
 	switch {
 	case provider == "orcid":
-		o, err := oauth.OrcidLogin(p.login, p.providerSecrets.Orcid)
+		o, err := oauth.OrcidLogin(p.ctx, p.login, p.providerSecrets.Orcid)
 		if err != nil {
 			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return o, nil
 	case provider == "google":
-		g, err := oauth.GoogleLogin(p.login, p.providerSecrets.Google)
+		g, err := oauth.GoogleLogin(p.ctx, p.login, p.providerSecrets.Google)
 		if err != nil {
 			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return g, nil
 	case provider == "linkedin":
-		li, err := oauth.LinkedInLogin(p.login, p.providerSecrets.LinkedIn)
+		li, err := oauth.LinkedInLogin(p.ctx, p.login, p.providerSecrets.LinkedIn)
 		if err != nil {
 			return u, aphgrpc.HandleError(p.ctx, err)
 		}
@@ -98,36 +97,28 @@ func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
 	}
 }
 
-func handleUserErr(reply *pubsub.UserReply, id int64, err error) error {
+func handleUserErr(ctx context.Context, reply *pubsub.UserReply, id int64, err error) error {
 	if err != nil {
-		return apherror.ErrMessagingReply.New("error in getting user reply %s", err.Error())
+		return aphgrpc.HandleMessagingReplyError(ctx, err)
 	}
 	if reply.Status != nil {
 		if !reply.Exist {
-			return apherror.ErrAuthentication.New(
-				"cannot authenticate user id %v with error %s",
-				id,
-				status.ErrorProto(reply.Status).Error(),
-			)
+			return aphgrpc.HandleAuthenticationError(ctx, err)
 		}
-		return apherror.ErrMessagingReply.New(status.ErrorProto(reply.Status).Error())
+		return aphgrpc.HandleMessagingReplyError(ctx, err)
 	}
 	return nil
 }
 
-func handleIdentityErr(reply *pubsub.IdentityReply, id string, err error) error {
+func handleIdentityErr(ctx context.Context, reply *pubsub.IdentityReply, id string, err error) error {
 	if err != nil {
-		return apherror.ErrMessagingReply.New("error in getting identifier reply %s", err.Error())
+		return aphgrpc.HandleMessagingReplyError(ctx, err)
 	}
 	if reply.Status != nil {
 		if !reply.Exist {
-			return apherror.ErrAuthentication.New(
-				"cannot authenticate identifier %s with error %s",
-				id,
-				status.ErrorProto(reply.Status).Error(),
-			)
+			return aphgrpc.HandleAuthenticationError(ctx, err)
 		}
-		return apherror.ErrMessagingReply.New(status.ErrorProto(reply.Status).Error())
+		return aphgrpc.HandleMessagingReplyError(ctx, err)
 	}
 	return nil
 }

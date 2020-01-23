@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	jwtExpirationTimeInHours          = 360 // 15 days
-	refreshTokenExpirationTimeInHours = 720 // 30 days
+	jwtExpirationTimeInMins          = 15 // 15 mins
+	refreshTokenExpirationTimeInMins = 60 * 720 // 30 days
 )
 
 // AuthService is the container for managing auth service definitions
@@ -94,7 +94,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		idnReq,
 	)
 	if err != nil {
-		return a, handleIdentityErr(idnReply, idnReq.Identifier, err)
+		return a, handleIdentityErr(ctx, idnReply, idnReq.Identifier, err)
 	}
 	// now check for user id
 	uid := idnReply.Identity.Data.Attributes.UserId
@@ -104,7 +104,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		&pubsub.IdRequest{Id: uid},
 	)
 	if err != nil {
-		return a, handleUserErr(uReply, uid, err)
+		return a, handleUserErr(ctx, uReply, uid, err)
 	}
 	// fetch the user
 	duReply, err := s.request.UserRequestWithContext(
@@ -113,7 +113,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		&pubsub.IdRequest{Id: uid},
 	)
 	if err != nil {
-		return a, handleUserErr(duReply, uid, err)
+		return a, handleUserErr(ctx, duReply, uid, err)
 	}
 	identity := idnReq.Identifier
 	// generate tokens
@@ -122,7 +122,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return a, aphgrpc.HandleInsertError(ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
@@ -169,7 +169,7 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 		idnReq,
 	)
 	if err != nil {
-		return a, handleIdentityErr(idnReply, idnReq.Identifier, err)
+		return a, handleIdentityErr(ctx, idnReply, idnReq.Identifier, err)
 	}
 	// now check for user id
 	uid := idnReply.Identity.Data.Attributes.UserId
@@ -179,7 +179,7 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 		&pubsub.IdRequest{Id: uid},
 	)
 	if err != nil {
-		return a, handleUserErr(uReply, uid, err)
+		return a, handleUserErr(ctx, uReply, uid, err)
 	}
 	// fetch the user
 	duReply, err := s.request.UserRequestWithContext(
@@ -188,7 +188,7 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 		&pubsub.IdRequest{Id: uid},
 	)
 	if err != nil {
-		return a, handleUserErr(duReply, uid, err)
+		return a, handleUserErr(ctx, duReply, uid, err)
 	}
 	// generate tokens
 	tkns, err := generateBothTokens(ctx, identity, provider, s.jwtAuth)
@@ -196,7 +196,7 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return a, aphgrpc.HandleInsertError(ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
@@ -247,7 +247,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return tkns, aphgrpc.HandleInsertError(ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
