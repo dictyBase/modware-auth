@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dictyBase/authserver/message"
+	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/go-genproto/dictybaseapis/pubsub"
 	gnats "github.com/nats-io/go-nats"
 
