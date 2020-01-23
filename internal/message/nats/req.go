@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/go-genproto/dictybaseapis/pubsub"
+	"github.com/dictyBase/modware-auth/internal/message"
 	gnats "github.com/nats-io/go-nats"
 
 	"github.com/nats-io/go-nats/encoders/protobuf"
