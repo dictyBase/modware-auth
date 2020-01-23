@@ -12,7 +12,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
-	"github.com/dictyBase/go-genproto/dictybaseapis/pubsub"
 	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/modware-auth/internal/oauth"
 	"github.com/dictyBase/modware-auth/internal/repository"
@@ -20,7 +19,7 @@ import (
 )
 
 const (
-	jwtExpirationTimeInMins          = 15 // 15 mins
+	jwtExpirationTimeInMins          = 15       // 15 mins
 	refreshTokenExpirationTimeInMins = 60 * 720 // 30 days
 )
 
@@ -82,47 +81,28 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
-	// look up identity based on id
-	idnReq := &pubsub.IdentityReq{Provider: provider, Identifier: u.Email}
+	id := u.Email
 	if provider == "orcid" {
-		idnReq.Identifier = u.ID
+		id = u.ID
 	}
-	// check if the identity is present
-	idnReply, err := s.request.IdentityRequestWithContext(
-		ctx,
-		s.Topics["identityGet"],
-		idnReq,
-	)
+	// get identity data
+	idnReply, err := getIdentity(ctx, provider, id, s)
 	if err != nil {
-		return a, handleIdentityErr(ctx, idnReply, idnReq.Identifier, err)
+		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// now check for user id
+	// get user data
 	uid := idnReply.Identity.Data.Attributes.UserId
-	uReply, err := s.request.UserRequestWithContext(
-		ctx,
-		s.Topics["userExists"],
-		&pubsub.IdRequest{Id: uid},
-	)
+	duReply, err := getUser(ctx, uid, s)
 	if err != nil {
-		return a, handleUserErr(ctx, uReply, uid, err)
+		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// fetch the user
-	duReply, err := s.request.UserRequestWithContext(
-		ctx,
-		s.Topics["userGet"],
-		&pubsub.IdRequest{Id: uid},
-	)
-	if err != nil {
-		return a, handleUserErr(ctx, duReply, uid, err)
-	}
-	identity := idnReq.Identifier
 	// generate tokens
-	tkns, err := generateBothTokens(ctx, identity, provider, s.jwtAuth)
+	tkns, err := generateBothTokens(ctx, id, provider, s.jwtAuth)
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
+	if err := s.repo.SetToken(id, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return a, aphgrpc.HandleInsertError(ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
@@ -160,35 +140,16 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if !h {
 		return a, nil
 	}
-	// look up identity based on id
-	idnReq := &pubsub.IdentityReq{Provider: provider, Identifier: identity}
-	// check if the identity is present
-	idnReply, err := s.request.IdentityRequestWithContext(
-		ctx,
-		s.Topics["identityGet"],
-		idnReq,
-	)
+	// get identity data
+	idnReply, err := getIdentity(ctx, provider, identity, s)
 	if err != nil {
-		return a, handleIdentityErr(ctx, idnReply, idnReq.Identifier, err)
+		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// now check for user id
+	// get user data
 	uid := idnReply.Identity.Data.Attributes.UserId
-	uReply, err := s.request.UserRequestWithContext(
-		ctx,
-		s.Topics["userExists"],
-		&pubsub.IdRequest{Id: uid},
-	)
+	duReply, err := getUser(ctx, uid, s)
 	if err != nil {
-		return a, handleUserErr(ctx, uReply, uid, err)
-	}
-	// fetch the user
-	duReply, err := s.request.UserRequestWithContext(
-		ctx,
-		s.Topics["userGet"],
-		&pubsub.IdRequest{Id: uid},
-	)
-	if err != nil {
-		return a, handleUserErr(ctx, duReply, uid, err)
+		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	// generate tokens
 	tkns, err := generateBothTokens(ctx, identity, provider, s.jwtAuth)
