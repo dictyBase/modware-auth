@@ -1,7 +1,6 @@
 package oauth
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,7 +25,7 @@ type ProviderSecrets struct {
 	Orcid    string `json:"orcid"`
 }
 
-func GetOrcidUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func OrcidLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	postBody := fmt.Sprintf(
 		"client_id=%s&client_secret=%s&grant_type=%s&redirect_uri=%s&code=%s",
@@ -60,7 +59,7 @@ func GetOrcidUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) (
 	return nu, nil
 }
 
-func GetGoogleUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func GoogleLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	oc := &oauth2.Config{
 		ClientID:     nl.ClientId,
@@ -92,7 +91,7 @@ func GetGoogleUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) 
 	return nu, nil
 }
 
-func GetLinkedInUser(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func LinkedInLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	oc := &oauth2.Config{
 		ClientID:     nl.ClientId,
