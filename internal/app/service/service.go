@@ -76,7 +76,9 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	}
 	provider := l.Provider
 	// log in to provider and get user data
-	u, err := getProviderLogin(ctx, provider, l, s.providerSecrets)
+	u, err := getProviderLogin(&ProviderLogin{
+		ctx: ctx, provider: provider, login: l, providerSecrets: s.providerSecrets,
+	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
@@ -128,10 +130,10 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	}
 	// return full Auth struct
 	a = &auth.Auth{
-		Token: tkns.Token,
+		Token:        tkns.Token,
 		RefreshToken: tkns.RefreshToken,
-		User: duReply.User,
-		Identity: idnReply.Identity,
+		User:         duReply.User,
+		Identity:     idnReply.Identity,
 	}
 	return a, nil
 }
@@ -202,10 +204,10 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	}
 	// return full Auth struct
 	a = &auth.Auth{
-		Token: tkns.Token,
+		Token:        tkns.Token,
 		RefreshToken: tkns.RefreshToken,
-		User: duReply.User,
-		Identity: idnReply.Identity,
+		User:         duReply.User,
+		Identity:     idnReply.Identity,
 	}
 	return a, nil
 }

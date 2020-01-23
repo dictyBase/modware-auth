@@ -25,6 +25,13 @@ type RefreshTokenClaims struct {
 	jwt.StandardClaims
 }
 
+type ProviderLogin struct {
+	ctx             context.Context
+	provider        string
+	login           *auth.NewLogin
+	providerSecrets oauth.ProviderSecrets
+}
+
 func generateStandardClaims(expirationHours time.Duration) jwt.StandardClaims {
 	return jwt.StandardClaims{
 		Issuer:    "dictyBase",
@@ -64,25 +71,26 @@ func generateBothTokens(ctx context.Context, identity string, provider string, j
 	return tkn, nil
 }
 
-func getProviderLogin(ctx context.Context, provider string, l *auth.NewLogin, providerSecrets oauth.ProviderSecrets) (*user.NormalizedUser, error) {
+func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
 	u := &user.NormalizedUser{}
+	provider := p.provider
 	switch {
 	case provider == "orcid":
-		o, err := oauth.OrcidLogin(l, providerSecrets.Orcid)
+		o, err := oauth.OrcidLogin(p.login, p.providerSecrets.Orcid)
 		if err != nil {
-			return u, aphgrpc.HandleError(ctx, err)
+			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return o, nil
 	case provider == "google":
-		g, err := oauth.GoogleLogin(l, providerSecrets.Google)
+		g, err := oauth.GoogleLogin(p.login, p.providerSecrets.Google)
 		if err != nil {
-			return u, aphgrpc.HandleError(ctx, err)
+			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return g, nil
 	case provider == "linkedin":
-		li, err := oauth.LinkedInLogin(l, providerSecrets.LinkedIn)
+		li, err := oauth.LinkedInLogin(p.login, p.providerSecrets.LinkedIn)
 		if err != nil {
-			return u, aphgrpc.HandleError(ctx, err)
+			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return li, nil
 	default:
@@ -97,7 +105,7 @@ func handleUserErr(reply *pubsub.UserReply, id int64, err error) error {
 	if reply.Status != nil {
 		if !reply.Exist {
 			return apherror.ErrAuthentication.New(
-				"cannot authenticate user id %s with error %s",
+				"cannot authenticate user id %v with error %s",
 				id,
 				status.ErrorProto(reply.Status).Error(),
 			)
