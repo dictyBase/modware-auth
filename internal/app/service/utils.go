@@ -97,7 +97,46 @@ func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
 	}
 }
 
-func handleUserErr(ctx context.Context, reply *pubsub.UserReply, id int64, err error) error {
+func getIdentity(ctx context.Context, provider string, id string, auth *AuthService) (*pubsub.IdentityReply, error) {
+	i := &pubsub.IdentityReply{}
+	// look up identity based on id
+	idnReq := &pubsub.IdentityReq{Provider: provider, Identifier: id}
+	// check if the identity is present
+	idnReply, err := auth.request.IdentityRequestWithContext(
+		ctx,
+		auth.Topics["identityGet"],
+		idnReq,
+	)
+	if err != nil {
+		return i, handleIdentityErr(ctx, idnReply, err)
+	}
+	return idnReply, nil
+}
+
+func getUser(ctx context.Context, uid int64, auth *AuthService) (*pubsub.UserReply, error) {
+	u := &pubsub.UserReply{}
+	// check for user id
+	uReply, err := auth.request.UserRequestWithContext(
+		ctx,
+		auth.Topics["userExists"],
+		&pubsub.IdRequest{Id: uid},
+	)
+	if err != nil {
+		return u, handleUserErr(ctx, uReply, err)
+	}
+	// fetch the user
+	duReply, err := auth.request.UserRequestWithContext(
+		ctx,
+		auth.Topics["userGet"],
+		&pubsub.IdRequest{Id: uid},
+	)
+	if err != nil {
+		return u, handleUserErr(ctx, duReply, err)
+	}
+	return duReply, nil
+}
+
+func handleUserErr(ctx context.Context, reply *pubsub.UserReply, err error) error {
 	if err != nil {
 		return aphgrpc.HandleMessagingReplyError(ctx, err)
 	}
@@ -110,7 +149,7 @@ func handleUserErr(ctx context.Context, reply *pubsub.UserReply, id int64, err e
 	return nil
 }
 
-func handleIdentityErr(ctx context.Context, reply *pubsub.IdentityReply, id string, err error) error {
+func handleIdentityErr(ctx context.Context, reply *pubsub.IdentityReply, err error) error {
 	if err != nil {
 		return aphgrpc.HandleMessagingReplyError(ctx, err)
 	}
