@@ -17,7 +17,11 @@ import (
 )
 
 type RefreshTokenClaims struct {
-	email string
+	// identity is used as an identifier for a user's identity data
+	// (it is an ID for orcid, an email for others)
+	identity string
+	// provider is the login provider
+	provider string
 	jwt.StandardClaims
 }
 
@@ -33,18 +37,19 @@ func generateStandardClaims(expirationHours time.Duration) jwt.StandardClaims {
 	}
 }
 
-func generateRefreshTokenClaims(email string) RefreshTokenClaims {
+func generateRefreshTokenClaims(identity string, provider string) RefreshTokenClaims {
 	return RefreshTokenClaims{
-		email,
+		identity,
+		provider,
 		generateStandardClaims(refreshTokenExpirationTimeInHours),
 	}
 }
 
-func generateBothTokens(ctx context.Context, email string, j jwtauth.JWTAuth) (*auth.Token, error) {
+func generateBothTokens(ctx context.Context, identity string, provider string, j jwtauth.JWTAuth) (*auth.Token, error) {
 	tkn := &auth.Token{}
 	// generate new claims
 	jwtClaims := generateStandardClaims(jwtExpirationTimeInHours)
-	refTknClaims := generateRefreshTokenClaims(email)
+	refTknClaims := generateRefreshTokenClaims(identity, provider)
 	// generate new JWT and refresh token to send back
 	tknStr, err := j.Encode(jwtClaims)
 	if err != nil {

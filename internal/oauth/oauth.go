@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -68,11 +69,11 @@ func GoogleLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, 
 		RedirectURL:  nl.RedirectUrl,
 		Scopes:       strings.Split(nl.Scopes, " "),
 	}
-	token, err := oc.Exchange(oauth2.NoContext, nl.Code)
+	token, err := oc.Exchange(context.Background(), nl.Code)
 	if err != nil {
 		return nu, apherror.ErrOauthExchange.New(err.Error())
 	}
-	oauthClient := oc.Client(oauth2.NoContext, token)
+	oauthClient := oc.Client(context.Background(), token)
 	resp, err := oauthClient.Get(user.Google)
 	if err != nil {
 		return nu, apherror.ErrUserRetrieval.New(err.Error())
@@ -100,11 +101,11 @@ func LinkedInLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser
 		RedirectURL:  nl.RedirectUrl,
 		Scopes:       strings.Split(nl.Scopes, " "),
 	}
-	token, err := oc.Exchange(oauth2.NoContext, nl.Code)
+	token, err := oc.Exchange(context.Background(), nl.Code)
 	if err != nil {
 		return nu, apherror.ErrOauthExchange.New(err.Error())
 	}
-	oauthClient := oc.Client(oauth2.NoContext, token)
+	oauthClient := oc.Client(context.Background(), token)
 	resp, err := oauthClient.Get(user.LinkedIn)
 	if err != nil {
 		return nu, apherror.ErrUserRetrieval.New(err.Error())
