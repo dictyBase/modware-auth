@@ -40,7 +40,7 @@ func OrcidLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*u
 	body := strings.NewReader(postBody)
 	req, err := http.NewRequest("POST", OrcidEndpoint.TokenURL, body)
 	if err != nil {
-		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -51,7 +51,7 @@ func OrcidLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*u
 	defer resp.Body.Close()
 	var orcid user.OrcidUser
 	if err := json.NewDecoder(resp.Body).Decode(&orcid); err != nil {
-		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
 	}
 	nu = &user.NormalizedUser{
 		Name:     orcid.Name,
@@ -82,7 +82,7 @@ func GoogleLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*
 	defer resp.Body.Close()
 	var google user.GoogleUser
 	if err := json.NewDecoder(resp.Body).Decode(&google); err != nil {
-		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
 	}
 	nu = &user.NormalizedUser{
 		Name:     google.Name,
@@ -114,7 +114,7 @@ func LinkedInLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) 
 	defer resp.Body.Close()
 	var linkedin user.LinkedInUser
 	if err := json.NewDecoder(resp.Body).Decode(&linkedin); err != nil {
-		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
 	}
 	nu = &user.NormalizedUser{
 		Name:     fmt.Sprintf("%s %s", linkedin.FirstName, linkedin.LastName),

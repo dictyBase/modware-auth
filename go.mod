@@ -5,7 +5,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/dictyBase/aphgrpc v1.2.1
+	github.com/dictyBase/aphgrpc v1.3.0
 	github.com/dictyBase/go-genproto v0.0.0-20200115211547-651977b0b4d6
 	github.com/go-playground/validator/v10 v10.0.1
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
