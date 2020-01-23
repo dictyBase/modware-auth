@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dictyBase/apihelpers/apherror"
+	"github.com/dictyBase/aphgrpc"
+
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/modware-auth/internal/user"
 	"golang.org/x/oauth2"
@@ -26,7 +27,7 @@ type ProviderSecrets struct {
 	Orcid    string `json:"orcid"`
 }
 
-func OrcidLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func OrcidLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	postBody := fmt.Sprintf(
 		"client_id=%s&client_secret=%s&grant_type=%s&redirect_uri=%s&code=%s",
@@ -39,18 +40,18 @@ func OrcidLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, e
 	body := strings.NewReader(postBody)
 	req, err := http.NewRequest("POST", OrcidEndpoint.TokenURL, body)
 	if err != nil {
-		return nu, apherror.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nu, apherror.ErrOauthExchange.New(err.Error())
+		return nu, aphgrpc.HandleOauthExchangeError(ctx, err)
 	}
 	defer resp.Body.Close()
 	var orcid user.OrcidUser
 	if err := json.NewDecoder(resp.Body).Decode(&orcid); err != nil {
-		return nu, apherror.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
 	}
 	nu = &user.NormalizedUser{
 		Name:     orcid.Name,
@@ -60,7 +61,7 @@ func OrcidLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, e
 	return nu, nil
 }
 
-func GoogleLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func GoogleLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	oc := &oauth2.Config{
 		ClientID:     nl.ClientId,
@@ -71,17 +72,17 @@ func GoogleLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, 
 	}
 	token, err := oc.Exchange(context.Background(), nl.Code)
 	if err != nil {
-		return nu, apherror.ErrOauthExchange.New(err.Error())
+		return nu, aphgrpc.HandleOauthExchangeError(ctx, err)
 	}
 	oauthClient := oc.Client(context.Background(), token)
 	resp, err := oauthClient.Get(user.Google)
 	if err != nil {
-		return nu, apherror.ErrUserRetrieval.New(err.Error())
+		return nu, aphgrpc.HandleUserRetrievalError(ctx, err)
 	}
 	defer resp.Body.Close()
 	var google user.GoogleUser
 	if err := json.NewDecoder(resp.Body).Decode(&google); err != nil {
-		return nu, apherror.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
 	}
 	nu = &user.NormalizedUser{
 		Name:     google.Name,
@@ -92,7 +93,7 @@ func GoogleLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, 
 	return nu, nil
 }
 
-func LinkedInLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func LinkedInLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	oc := &oauth2.Config{
 		ClientID:     nl.ClientId,
@@ -103,17 +104,17 @@ func LinkedInLogin(nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser
 	}
 	token, err := oc.Exchange(context.Background(), nl.Code)
 	if err != nil {
-		return nu, apherror.ErrOauthExchange.New(err.Error())
+		return nu, aphgrpc.HandleOauthExchangeError(ctx, err)
 	}
 	oauthClient := oc.Client(context.Background(), token)
 	resp, err := oauthClient.Get(user.LinkedIn)
 	if err != nil {
-		return nu, apherror.ErrUserRetrieval.New(err.Error())
+		return nu, aphgrpc.HandleUserRetrievalError(ctx, err)
 	}
 	defer resp.Body.Close()
 	var linkedin user.LinkedInUser
 	if err := json.NewDecoder(resp.Body).Decode(&linkedin); err != nil {
-		return nu, apherror.ErrJSONEncoding.New(err.Error())
+		return nu, aphgrpc.ErrJSONEncoding.New(err.Error())
 	}
 	nu = &user.NormalizedUser{
 		Name:     fmt.Sprintf("%s %s", linkedin.FirstName, linkedin.LastName),
