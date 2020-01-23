@@ -113,14 +113,14 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if err != nil {
 		return a, handleUserErr(duReply, uid, err)
 	}
-	email := duReply.User.Data.Attributes.Email
+	identity := idnReq.Identifier
 	// generate tokens
-	tkns, err := generateBothTokens(ctx, email, s.jwtAuth)
+	tkns, err := generateBothTokens(ctx, identity, provider, s.jwtAuth)
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(email, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
 		return a, aphgrpc.HandleInsertError(ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
@@ -141,13 +141,72 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if err := l.Validate(); err != nil {
 		return a, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
-
-	// 1. look up refresh token
-	// 2. verify refresh token is valid
-	// 3. fetch user/identity data based on key (user email)
-	// 4. generate new jwt
-	// 5. return json payload
-
+	// verify refresh token
+	r, err := s.jwtAuth.Verify(l.RefreshToken)
+	if err != nil {
+		return a, aphgrpc.HandleError(ctx, err)
+	}
+	// get the claims from decoded refresh token
+	c := r.Claims.(jwt.MapClaims)
+	identity := fmt.Sprintf("%v", c["identity"])
+	provider := fmt.Sprintf("%v", c["provider"])
+	// verify existence of refresh token in repository
+	h, err := s.repo.HasToken(identity)
+	if err != nil {
+		return a, aphgrpc.HandleNotFoundError(ctx, err)
+	}
+	if !h {
+		return a, nil
+	}
+	// look up identity based on id
+	idnReq := &pubsub.IdentityReq{Provider: provider, Identifier: identity}
+	// check if the identity is present
+	idnReply, err := s.request.IdentityRequestWithContext(
+		ctx,
+		s.Topics["identityGet"],
+		idnReq,
+	)
+	if err != nil {
+		return a, handleIdentityErr(idnReply, idnReq.Identifier, err)
+	}
+	// now check for user id
+	uid := idnReply.Identity.Data.Attributes.UserId
+	uReply, err := s.request.UserRequestWithContext(
+		ctx,
+		s.Topics["userExists"],
+		&pubsub.IdRequest{Id: uid},
+	)
+	if err != nil {
+		return a, handleUserErr(uReply, uid, err)
+	}
+	// fetch the user
+	duReply, err := s.request.UserRequestWithContext(
+		ctx,
+		s.Topics["userGet"],
+		&pubsub.IdRequest{Id: uid},
+	)
+	if err != nil {
+		return a, handleUserErr(duReply, uid, err)
+	}
+	// generate tokens
+	tkns, err := generateBothTokens(ctx, identity, provider, s.jwtAuth)
+	if err != nil {
+		return a, aphgrpc.HandleError(ctx, err)
+	}
+	// store refresh token in repository
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
+		return a, aphgrpc.HandleInsertError(ctx, err)
+	}
+	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
+		return a, aphgrpc.HandleError(ctx, err)
+	}
+	// return full Auth struct
+	a = &auth.Auth{
+		Token: tkns.Token,
+		RefreshToken: tkns.RefreshToken,
+		User: duReply.User,
+		Identity: idnReply.Identity,
+	}
 	return a, nil
 }
 
@@ -170,9 +229,10 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	}
 	// get the claims from decoded refresh token
 	c := r.Claims.(jwt.MapClaims)
-	email := fmt.Sprintf("%v", c["email"])
+	identity := fmt.Sprintf("%v", c["identity"])
+	provider := fmt.Sprintf("%v", c["provider"])
 	// verify existence of refresh token in repository
-	h, err := s.repo.HasToken(email)
+	h, err := s.repo.HasToken(identity)
 	if err != nil {
 		return tkns, aphgrpc.HandleNotFoundError(ctx, err)
 	}
@@ -180,12 +240,12 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkns, nil
 	}
 	// generate tokens
-	tkns, err = generateBothTokens(ctx, email, s.jwtAuth)
+	tkns, err = generateBothTokens(ctx, identity, provider, s.jwtAuth)
 	if err != nil {
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(email, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Hour*refreshTokenExpirationTimeInHours); err != nil {
 		return tkns, aphgrpc.HandleInsertError(ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
