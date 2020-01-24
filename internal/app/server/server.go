@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/dictyBase/modware-auth/internal/message"
+	"github.com/dictyBase/modware-auth/internal/repository"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -36,25 +38,16 @@ type ClientsGRPC struct {
 	identityClient identity.IdentityServiceClient
 }
 
+type Connections struct {
+	authRepo repository.AuthRepository
+	publisher message.Publisher
+}
+
 func RunServer(c *cli.Context) error {
-	redisAddr := fmt.Sprintf("%s:%s", c.String("redis-master-service-host"), c.String("redis-master-service-port"))
-	rrepo, err := redis.NewAuthRepo(redisAddr)
+	conns, err := getConnections(c)
 	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("cannot connect to redis auth repository %s", err.Error()),
-			2,
-		)
-	}
-	ms, err := nats.NewPublisher(
-		c.String("nats-host"), c.String("nats-port"),
-		gnats.MaxReconnects(-1), gnats.ReconnectWait(2*time.Second),
-	)
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("cannot connect to messaging server %s", err.Error()),
-			2,
-		)
-	}
+		return cli.NewExitError(fmt.Sprintf("Unable to connect to external service %q\n", err), 2)
+	}	
 	clients, err := connectToGRPC(c)
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("Unable to connect to grpc client %q\n", err), 2)
@@ -74,24 +67,20 @@ func RunServer(c *cli.Context) error {
 		),
 	)
 	srv, err := service.NewAuthService(&service.ServiceParams{
-		Repository:      rrepo,
-		Publisher:       ms,
+		Repository:      conns.authRepo,
+		Publisher:       conns.publisher,
 		User:            clients.userClient,
 		Identity:        clients.identityClient,
 		JWTAuth:         *jt,
 		ProviderSecrets: *config,
-		Options: []aphgrpc.Option{
-			aphgrpc.TopicsOption(map[string]string{
-				"tokenCreate": "AuthService.Create",
-			}),
+		Options: getGrpcOpt(),
 		},
-	})
+	)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to create new auth service %s", err), 2)
+		return cli.NewExitError(err.Error(), 2)
 	}
 	auth.RegisterAuthServiceServer(grpcS, srv)
 	reflection.Register(grpcS)
-	// create listener
 	endP := fmt.Sprintf(":%s", c.String("port"))
 	lis, err := net.Listen("tcp", endP)
 	if err != nil {
@@ -148,6 +137,33 @@ func parseJwtKeys(c *cli.Context) (*jwtauth.JWTAuth, error) {
 	return jwtauth.NewJwtAuth(jwt.SigningMethodRS512, pkey, pubkey), err
 }
 
+// get external connections to redis, nats
+func getConnections(c *cli.Context) (*Connections, error) {
+	conn := &Connections{}
+	redisAddr := fmt.Sprintf("%s:%s", c.String("redis-master-service-host"), c.String("redis-master-service-port"))
+	rrepo, err := redis.NewAuthRepo(redisAddr)
+	if err != nil {
+		return conn, cli.NewExitError(
+			fmt.Sprintf("cannot connect to redis auth repository %s", err.Error()),
+			2,
+		)
+	}
+	ms, err := nats.NewPublisher(
+		c.String("nats-host"), c.String("nats-port"),
+		gnats.MaxReconnects(-1), gnats.ReconnectWait(2*time.Second),
+	)
+	if err != nil {
+		return conn, cli.NewExitError(
+			fmt.Sprintf("cannot connect to messaging server %s", err.Error()),
+			2,
+		)
+	}
+	conn.authRepo = rrepo
+	conn.publisher = ms
+	return conn, nil
+}
+
+// connect to necessary grpc clients
 func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 	clients := &ClientsGRPC{}
 	userAddr := fmt.Sprintf("%s:%s", c.String("user-grpc-host"), c.String("user-grpc-port"))
@@ -170,6 +186,15 @@ func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 	clients.userClient = user.NewUserServiceClient(uconn)
 	clients.identityClient = identity.NewIdentityServiceClient(iconn)
 	return clients, nil
+}
+
+// get grpc topics options
+func getGrpcOpt() []aphgrpc.Option {
+	return []aphgrpc.Option{
+		aphgrpc.TopicsOption(map[string]string{
+				"tokenCreate": "AuthService.Create",
+		}),
+	}
 }
 
 func getLogger(c *cli.Context) *logrus.Entry {
