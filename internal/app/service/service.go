@@ -145,11 +145,8 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	provider := fmt.Sprintf("%v", c["provider"])
 	// verify existence of refresh token in repository
 	h, err := s.repo.HasToken(identityStr)
-	if err != nil {
+	if err != nil || !h {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
-	}
-	if !h {
-		return a, nil
 	}
 	// get identity data
 	idn, err := s.identity.GetIdentityFromProvider(ctx, &identity.IdentityProviderReq{
@@ -212,11 +209,8 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	provider := fmt.Sprintf("%v", c["provider"])
 	// verify existence of refresh token in repository
 	h, err := s.repo.HasToken(identity)
-	if err != nil {
+	if err != nil || !h {
 		return tkns, aphgrpc.HandleNotFoundError(ctx, err)
-	}
-	if !h {
-		return tkns, nil
 	}
 	// generate tokens
 	tkns, err = generateBothTokens(&GenerateTokens{
@@ -241,7 +235,7 @@ func (s *AuthService) Logout(ctx context.Context, t *auth.NewRefreshToken) (*emp
 		return e, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
 	if err := s.repo.DeleteToken(t.RefreshToken); err != nil {
-		return e, aphgrpc.HandleDeleteError(ctx, err)
+		return e, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	return e, nil
 }
