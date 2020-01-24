@@ -11,6 +11,7 @@ import (
 
 	"github.com/dictyBase/modware-auth/internal/jwtauth"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/go-genproto/dictybaseapis/identity"
@@ -27,7 +28,6 @@ import (
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	jwt "github.com/dgrijalva/jwt-go"
 )
 
 func RunServer(c *cli.Context) error {
