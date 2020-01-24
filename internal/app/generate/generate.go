@@ -35,7 +35,7 @@ func GenerateKeys(c *cli.Context) error {
 		return cli.NewExitError(fmt.Sprintf("unable to create file %q\n", err), 2)
 	}
 	// generate and write to files
-	keys, err := getKeys(c)
+	keys, err := getKeys()
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("unable to generate key %q\n", err), 2)
 	}
@@ -95,7 +95,7 @@ func openFiles(c *cli.Context) (*Files, error) {
 	return f, nil
 }
 
-func getKeys(c *cli.Context) (*Keys, error) {
+func getKeys() (*Keys, error) {
 	k := &Keys{}
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
