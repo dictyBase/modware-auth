@@ -7,7 +7,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
-	"github.com/dictyBase/go-genproto/dictybaseapis/pubsub"
 	"github.com/dictyBase/modware-auth/internal/jwtauth"
 	"github.com/dictyBase/modware-auth/internal/oauth"
 	"github.com/dictyBase/modware-auth/internal/user"
@@ -95,69 +94,4 @@ func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
 	default:
 		return u, nil
 	}
-}
-
-func getIdentity(ctx context.Context, provider string, id string, auth *AuthService) (*pubsub.IdentityReply, error) {
-	i := &pubsub.IdentityReply{}
-	// look up identity based on id
-	idnReq := &pubsub.IdentityReq{Provider: provider, Identifier: id}
-	// check if the identity is present
-	idnReply, err := auth.messaging.IdentityRequestWithContext(
-		ctx,
-		auth.Topics["identityGet"],
-		idnReq,
-	)
-	if err != nil {
-		return i, handleIdentityErr(ctx, idnReply, err)
-	}
-	return idnReply, nil
-}
-
-func getUser(ctx context.Context, uid int64, auth *AuthService) (*pubsub.UserReply, error) {
-	u := &pubsub.UserReply{}
-	// check for user id
-	uReply, err := auth.messaging.UserRequestWithContext(
-		ctx,
-		auth.Topics["userExists"],
-		&pubsub.IdRequest{Id: uid},
-	)
-	if err != nil {
-		return u, handleUserErr(ctx, uReply, err)
-	}
-	// fetch the user
-	duReply, err := auth.messaging.UserRequestWithContext(
-		ctx,
-		auth.Topics["userGet"],
-		&pubsub.IdRequest{Id: uid},
-	)
-	if err != nil {
-		return u, handleUserErr(ctx, duReply, err)
-	}
-	return duReply, nil
-}
-
-func handleUserErr(ctx context.Context, reply *pubsub.UserReply, err error) error {
-	if err != nil {
-		return aphgrpc.HandleMessagingReplyError(ctx, err)
-	}
-	if reply.Status != nil {
-		if !reply.Exist {
-			return aphgrpc.HandleAuthenticationError(ctx, err)
-		}
-		return aphgrpc.HandleMessagingReplyError(ctx, err)
-	}
-	return nil
-}
-
-func handleIdentityErr(ctx context.Context, reply *pubsub.IdentityReply, err error) error {
-	if err != nil {
-		return aphgrpc.HandleMessagingReplyError(ctx, err)
-	}
-	if reply.Status != nil {
-		if !reply.Exist {
-			return aphgrpc.HandleAuthenticationError(ctx, err)
-		}
-		return aphgrpc.HandleMessagingReplyError(ctx, err)
-	}
-	return nil
 }
