@@ -27,8 +27,7 @@ const (
 type AuthService struct {
 	*aphgrpc.Service
 	repo            repository.AuthRepository
-	publisher       message.Publisher
-	request         message.Request
+	messaging       message.Messaging
 	jwtAuth         jwtauth.JWTAuth
 	providerSecrets oauth.ProviderSecrets
 }
@@ -36,8 +35,7 @@ type AuthService struct {
 // ServiceParams are the attributes that are required for creating a new AuthService
 type ServiceParams struct {
 	Repository      repository.AuthRepository `validate:"required"`
-	Publisher       message.Publisher         `validate:"required"`
-	Request         message.Request           `validate:"required"`
+	Messaging       message.Messaging         `validate:"required"`
 	JWTAuth         jwtauth.JWTAuth           `validate:"required"`
 	ProviderSecrets oauth.ProviderSecrets     `validate:"required"`
 	Options         []aphgrpc.Option          `validate:"required"`
@@ -61,8 +59,7 @@ func NewAuthService(srvP *ServiceParams) (*AuthService, error) {
 	return &AuthService{
 		Service:         srv,
 		repo:            srvP.Repository,
-		publisher:       srvP.Publisher,
-		request:         srvP.Request,
+		messaging:       srvP.Messaging,
 		jwtAuth:         srvP.JWTAuth,
 		providerSecrets: srvP.ProviderSecrets,
 	}, nil
@@ -105,7 +102,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if err := s.repo.SetToken(id, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return a, aphgrpc.HandleInsertError(ctx, err)
 	}
-	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
+	if err := s.messaging.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// return full Auth struct
@@ -160,7 +157,7 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return a, aphgrpc.HandleInsertError(ctx, err)
 	}
-	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
+	if err := s.messaging.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// return full Auth struct
@@ -211,7 +208,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
 		return tkns, aphgrpc.HandleInsertError(ctx, err)
 	}
-	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
+	if err := s.messaging.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
 	return tkns, nil

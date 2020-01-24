@@ -102,7 +102,7 @@ func getIdentity(ctx context.Context, provider string, id string, auth *AuthServ
 	// look up identity based on id
 	idnReq := &pubsub.IdentityReq{Provider: provider, Identifier: id}
 	// check if the identity is present
-	idnReply, err := auth.request.IdentityRequestWithContext(
+	idnReply, err := auth.messaging.IdentityRequestWithContext(
 		ctx,
 		auth.Topics["identityGet"],
 		idnReq,
@@ -116,7 +116,7 @@ func getIdentity(ctx context.Context, provider string, id string, auth *AuthServ
 func getUser(ctx context.Context, uid int64, auth *AuthService) (*pubsub.UserReply, error) {
 	u := &pubsub.UserReply{}
 	// check for user id
-	uReply, err := auth.request.UserRequestWithContext(
+	uReply, err := auth.messaging.UserRequestWithContext(
 		ctx,
 		auth.Topics["userExists"],
 		&pubsub.IdRequest{Id: uid},
@@ -125,7 +125,7 @@ func getUser(ctx context.Context, uid int64, auth *AuthService) (*pubsub.UserRep
 		return u, handleUserErr(ctx, uReply, err)
 	}
 	// fetch the user
-	duReply, err := auth.request.UserRequestWithContext(
+	duReply, err := auth.messaging.UserRequestWithContext(
 		ctx,
 		auth.Topics["userGet"],
 		&pubsub.IdRequest{Id: uid},
