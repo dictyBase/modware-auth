@@ -16,6 +16,7 @@ import (
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/go-genproto/dictybaseapis/identity"
 	"github.com/dictyBase/go-genproto/dictybaseapis/user"
+	"github.com/dictyBase/modware-auth/internal/app/generate"
 	"github.com/dictyBase/modware-auth/internal/app/service"
 	"github.com/dictyBase/modware-auth/internal/message/nats"
 	"github.com/dictyBase/modware-auth/internal/oauth"
@@ -30,8 +31,14 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+type ClientsGRPC struct {
+	userClient     user.UserServiceClient
+	identityClient identity.IdentityServiceClient
+}
+
 func RunServer(c *cli.Context) error {
-	rrepo, err := redis.NewAuthRepo(fmt.Sprintf("%s:%s", c.String("redis-master-service-host"), c.String("redis-master-service-port")))
+	redisAddr := fmt.Sprintf("%s:%s", c.String("redis-master-service-host"), c.String("redis-master-service-port"))
+	rrepo, err := redis.NewAuthRepo(redisAddr)
 	if err != nil {
 		return cli.NewExitError(
 			fmt.Sprintf("cannot connect to redis auth repository %s", err.Error()),
@@ -48,20 +55,9 @@ func RunServer(c *cli.Context) error {
 			2,
 		)
 	}
-	// establish grpc connections
-	uconn, err := grpc.Dial(fmt.Sprintf("%s:%s", c.String("user-grpc-host"), c.String("user-grpc-port")), grpc.WithInsecure())
+	clients, err := connectToGRPC(c)
 	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("cannot connect to grpc user microservice %s", err),
-			2,
-		)
-	}
-	iconn, err := grpc.Dial(fmt.Sprintf("%s:%s", c.String("identity-grpc-host"), c.String("identity-grpc-port")), grpc.WithInsecure())
-	if err != nil {
-		return cli.NewExitError(
-			fmt.Sprintf("cannot connect to grpc identity microservice %s", err),
-			2,
-		)
+		return cli.NewExitError(fmt.Sprintf("Unable to connect to grpc client %q\n", err), 2)
 	}
 	config, err := readSecretConfig(c)
 	if err != nil {
@@ -80,8 +76,8 @@ func RunServer(c *cli.Context) error {
 	srv, err := service.NewAuthService(&service.ServiceParams{
 		Repository:      rrepo,
 		Publisher:       ms,
-		User:            user.NewUserServiceClient(uconn),
-		Identity:        identity.NewIdentityServiceClient(iconn),
+		User:            clients.userClient,
+		Identity:        clients.identityClient,
 		JWTAuth:         *jt,
 		ProviderSecrets: *config,
 		Options: []aphgrpc.Option{
@@ -90,6 +86,9 @@ func RunServer(c *cli.Context) error {
 			}),
 		},
 	})
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("Unable to create new auth service %s", err), 2)
+	}
 	auth.RegisterAuthServiceServer(grpcS, srv)
 	reflection.Register(grpcS)
 	// create listener
@@ -116,7 +115,7 @@ func RunServer(c *cli.Context) error {
 func readSecretConfig(c *cli.Context) (*oauth.ProviderSecrets, error) {
 	var provider *oauth.ProviderSecrets
 	reader, err := os.Open(c.String("config"))
-	defer reader.Close()
+	defer generate.Close(reader)
 	if err != nil {
 		return provider, err
 	}
@@ -129,24 +128,48 @@ func readSecretConfig(c *cli.Context) (*oauth.ProviderSecrets, error) {
 // Reads the public and private keys from their respective files and
 // stores them in the jwt handler.
 func parseJwtKeys(c *cli.Context) (*jwtauth.JWTAuth, error) {
-	jh := &jwtauth.JWTAuth{}
+	ja := &jwtauth.JWTAuth{}
 	private, err := ioutil.ReadFile(c.String("private-key"))
 	if err != nil {
-		return jh, err
+		return ja, err
 	}
 	pkey, err := jwt.ParseRSAPrivateKeyFromPEM(private)
 	if err != nil {
-		return jh, err
+		return ja, err
 	}
 	public, err := ioutil.ReadFile(c.String("public-key"))
 	if err != nil {
-		return jh, err
+		return ja, err
 	}
 	pubkey, err := jwt.ParseRSAPublicKeyFromPEM(public)
 	if err != nil {
-		return jh, err
+		return ja, err
 	}
 	return jwtauth.NewJwtAuth(jwt.SigningMethodRS512, pkey, pubkey), err
+}
+
+func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
+	clients := &ClientsGRPC{}
+	userAddr := fmt.Sprintf("%s:%s", c.String("user-grpc-host"), c.String("user-grpc-port"))
+	// establish grpc connections
+	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure())
+	if err != nil {
+		return clients, cli.NewExitError(
+			fmt.Sprintf("cannot connect to grpc user microservice %s", err),
+			2,
+		)
+	}
+	idnAddr := fmt.Sprintf("%s:%s", c.String("identity-grpc-host"), c.String("identity-grpc-port"))
+	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure())
+	if err != nil {
+		return clients, cli.NewExitError(
+			fmt.Sprintf("cannot connect to grpc identity microservice %s", err),
+			2,
+		)
+	}
+	clients.userClient = user.NewUserServiceClient(uconn)
+	clients.identityClient = identity.NewIdentityServiceClient(iconn)
+	return clients, nil
 }
 
 func getLogger(c *cli.Context) *logrus.Entry {
