@@ -21,19 +21,25 @@ func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
 	provider := p.provider
 	switch {
 	case provider == "orcid":
-		o, err := oauth.OrcidLogin(p.ctx, p.login, p.providerSecrets.Orcid)
+		o, err := oauth.OrcidLogin(&oauth.Login{
+			Ctx: p.ctx, NewLogin: p.login, ClientSecret: p.providerSecrets.Orcid,
+		})
 		if err != nil {
 			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return o, nil
 	case provider == "google":
-		g, err := oauth.GoogleLogin(p.ctx, p.login, p.providerSecrets.Google)
+		g, err := oauth.GoogleLogin(&oauth.Login{
+			Ctx: p.ctx, NewLogin: p.login, ClientSecret: p.providerSecrets.Google,
+		})
 		if err != nil {
 			return u, aphgrpc.HandleError(p.ctx, err)
 		}
 		return g, nil
 	case provider == "linkedin":
-		li, err := oauth.LinkedInLogin(p.ctx, p.login, p.providerSecrets.LinkedIn)
+		li, err := oauth.LinkedInLogin(&oauth.Login{
+			Ctx: p.ctx, NewLogin: p.login, ClientSecret: p.providerSecrets.LinkedIn,
+		})
 		if err != nil {
 			return u, aphgrpc.HandleError(p.ctx, err)
 		}

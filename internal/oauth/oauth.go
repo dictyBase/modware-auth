@@ -27,31 +27,37 @@ type ProviderSecrets struct {
 	Orcid    string `json:"orcid"`
 }
 
-func OrcidLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+type Login struct {
+	Ctx          context.Context
+	NewLogin     *auth.NewLogin
+	ClientSecret string
+}
+
+func OrcidLogin(l *Login) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	postBody := fmt.Sprintf(
 		"client_id=%s&client_secret=%s&grant_type=%s&redirect_uri=%s&code=%s",
-		nl.ClientId,
-		clientSecret,
+		l.NewLogin.ClientId,
+		l.ClientSecret,
 		"authorization_code",
-		nl.RedirectUrl,
-		nl.Code,
+		l.NewLogin.RedirectUrl,
+		l.NewLogin.Code,
 	)
 	body := strings.NewReader(postBody)
 	req, err := http.NewRequest("POST", OrcidEndpoint.TokenURL, body)
 	if err != nil {
-		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
+		return nu, aphgrpc.HandleJSONEncodingError(l.Ctx, err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nu, aphgrpc.HandleOauthExchangeError(ctx, err)
+		return nu, aphgrpc.HandleOauthExchangeError(l.Ctx, err)
 	}
 	defer resp.Body.Close()
 	var orcid user.OrcidUser
 	if err := json.NewDecoder(resp.Body).Decode(&orcid); err != nil {
-		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
+		return nu, aphgrpc.HandleJSONEncodingError(l.Ctx, err)
 	}
 	nu = &user.NormalizedUser{
 		Name:     orcid.Name,
@@ -61,28 +67,28 @@ func OrcidLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*u
 	return nu, nil
 }
 
-func GoogleLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func GoogleLogin(l *Login) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	oc := &oauth2.Config{
-		ClientID:     nl.ClientId,
-		ClientSecret: clientSecret,
+		ClientID:     l.NewLogin.ClientId,
+		ClientSecret: l.ClientSecret,
 		Endpoint:     google.Endpoint,
-		RedirectURL:  nl.RedirectUrl,
-		Scopes:       strings.Split(nl.Scopes, " "),
+		RedirectURL:  l.NewLogin.RedirectUrl,
+		Scopes:       strings.Split(l.NewLogin.Scopes, " "),
 	}
-	token, err := oc.Exchange(context.Background(), nl.Code)
+	token, err := oc.Exchange(l.Ctx, l.NewLogin.Code)
 	if err != nil {
-		return nu, aphgrpc.HandleOauthExchangeError(ctx, err)
+		return nu, aphgrpc.HandleOauthExchangeError(l.Ctx, err)
 	}
-	oauthClient := oc.Client(context.Background(), token)
+	oauthClient := oc.Client(l.Ctx, token)
 	resp, err := oauthClient.Get(user.Google)
 	if err != nil {
-		return nu, aphgrpc.HandleUserRetrievalError(ctx, err)
+		return nu, aphgrpc.HandleUserRetrievalError(l.Ctx, err)
 	}
 	defer resp.Body.Close()
 	var google user.GoogleUser
 	if err := json.NewDecoder(resp.Body).Decode(&google); err != nil {
-		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
+		return nu, aphgrpc.HandleJSONEncodingError(l.Ctx, err)
 	}
 	nu = &user.NormalizedUser{
 		Name:     google.Name,
@@ -93,28 +99,28 @@ func GoogleLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*
 	return nu, nil
 }
 
-func LinkedInLogin(ctx context.Context, nl *auth.NewLogin, clientSecret string) (*user.NormalizedUser, error) {
+func LinkedInLogin(l *Login) (*user.NormalizedUser, error) {
 	nu := &user.NormalizedUser{}
 	oc := &oauth2.Config{
-		ClientID:     nl.ClientId,
-		ClientSecret: clientSecret,
+		ClientID:     l.NewLogin.ClientId,
+		ClientSecret: l.ClientSecret,
 		Endpoint:     linkedin.Endpoint,
-		RedirectURL:  nl.RedirectUrl,
-		Scopes:       strings.Split(nl.Scopes, " "),
+		RedirectURL:  l.NewLogin.RedirectUrl,
+		Scopes:       strings.Split(l.NewLogin.Scopes, " "),
 	}
-	token, err := oc.Exchange(context.Background(), nl.Code)
+	token, err := oc.Exchange(context.Background(), l.NewLogin.Code)
 	if err != nil {
-		return nu, aphgrpc.HandleOauthExchangeError(ctx, err)
+		return nu, aphgrpc.HandleOauthExchangeError(l.Ctx, err)
 	}
 	oauthClient := oc.Client(context.Background(), token)
 	resp, err := oauthClient.Get(user.LinkedIn)
 	if err != nil {
-		return nu, aphgrpc.HandleUserRetrievalError(ctx, err)
+		return nu, aphgrpc.HandleUserRetrievalError(l.Ctx, err)
 	}
 	defer resp.Body.Close()
 	var linkedin user.LinkedInUser
 	if err := json.NewDecoder(resp.Body).Decode(&linkedin); err != nil {
-		return nu, aphgrpc.HandleJSONEncodingError(ctx, err)
+		return nu, aphgrpc.HandleJSONEncodingError(l.Ctx, err)
 	}
 	nu = &user.NormalizedUser{
 		Name:     fmt.Sprintf("%s %s", linkedin.FirstName, linkedin.LastName),

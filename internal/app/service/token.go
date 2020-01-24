@@ -21,6 +21,13 @@ type RefreshTokenClaims struct {
 	jwt.StandardClaims
 }
 
+type GenerateTokens struct {
+	ctx      context.Context
+	identity string
+	provider string
+	j        jwtauth.JWTAuth
+}
+
 func generateStandardClaims(expirationMinutes time.Duration) jwt.StandardClaims {
 	return jwt.StandardClaims{
 		Issuer:    "dictyBase",
@@ -41,20 +48,20 @@ func generateRefreshTokenClaims(identity string, provider string) RefreshTokenCl
 	}
 }
 
-func generateBothTokens(ctx context.Context, identity string, provider string, j jwtauth.JWTAuth) (*auth.Token, error) {
+func generateBothTokens(gt *GenerateTokens) (*auth.Token, error) {
 	tkn := &auth.Token{}
 	// generate new claims
 	jwtClaims := generateStandardClaims(jwtExpirationTimeInMins)
-	refTknClaims := generateRefreshTokenClaims(identity, provider)
+	refTknClaims := generateRefreshTokenClaims(gt.identity, gt.provider)
 	// generate new JWT and refresh token to send back
-	tknStr, err := j.Encode(jwtClaims)
+	tknStr, err := gt.j.Encode(jwtClaims)
 	if err != nil {
-		return tkn, aphgrpc.HandleError(ctx, err)
+		return tkn, aphgrpc.HandleError(gt.ctx, err)
 	}
 	tkn.Token = tknStr
-	refTknStr, err := j.Encode(refTknClaims)
+	refTknStr, err := gt.j.Encode(refTknClaims)
 	if err != nil {
-		return tkn, aphgrpc.HandleError(ctx, err)
+		return tkn, aphgrpc.HandleError(gt.ctx, err)
 	}
 	tkn.RefreshToken = refTknStr
 	return tkn, nil

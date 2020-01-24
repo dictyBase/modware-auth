@@ -106,7 +106,9 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	// generate tokens
-	tkns, err := generateBothTokens(ctx, id, provider, s.jwtAuth)
+	tkns, err := generateBothTokens(&GenerateTokens{
+		ctx: ctx, identity: id, provider: provider, j: s.jwtAuth,
+	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
@@ -164,7 +166,9 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	// generate tokens
-	tkns, err := generateBothTokens(ctx, identityStr, provider, s.jwtAuth)
+	tkns, err := generateBothTokens(&GenerateTokens{
+		ctx: ctx, identity: identityStr, provider: provider, j: s.jwtAuth,
+	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
@@ -215,7 +219,9 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkns, nil
 	}
 	// generate tokens
-	tkns, err = generateBothTokens(ctx, identity, provider, s.jwtAuth)
+	tkns, err = generateBothTokens(&GenerateTokens{
+		ctx: ctx, identity: identity, provider: provider, j: s.jwtAuth,
+	})
 	if err != nil {
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
