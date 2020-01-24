@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/dictyBase/modware-auth/internal/message"
-	"github.com/dictyBase/modware-auth/internal/repository"
 	"encoding/json"
 	"fmt"
+	"github.com/dictyBase/modware-auth/internal/message"
+	"github.com/dictyBase/modware-auth/internal/repository"
 	"io/ioutil"
 	"log"
 	"net"
@@ -39,7 +39,7 @@ type ClientsGRPC struct {
 }
 
 type Connections struct {
-	authRepo repository.AuthRepository
+	authRepo  repository.AuthRepository
 	publisher message.Publisher
 }
 
@@ -47,7 +47,7 @@ func RunServer(c *cli.Context) error {
 	conns, err := getConnections(c)
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("Unable to connect to external service %q\n", err), 2)
-	}	
+	}
 	clients, err := connectToGRPC(c)
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("Unable to connect to grpc client %q\n", err), 2)
@@ -73,8 +73,8 @@ func RunServer(c *cli.Context) error {
 		Identity:        clients.identityClient,
 		JWTAuth:         *jt,
 		ProviderSecrets: *config,
-		Options: getGrpcOpt(),
-		},
+		Options:         getGrpcOpt(),
+	},
 	)
 	if err != nil {
 		return cli.NewExitError(err.Error(), 2)
@@ -192,7 +192,7 @@ func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 func getGrpcOpt() []aphgrpc.Option {
 	return []aphgrpc.Option{
 		aphgrpc.TopicsOption(map[string]string{
-				"tokenCreate": "AuthService.Create",
+			"tokenCreate": "AuthService.Create",
 		}),
 	}
 }
