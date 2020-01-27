@@ -266,7 +266,7 @@ func (s *AuthService) createTokens(tp *tokenParams) (*auth.Auth, error) {
 		return a, aphgrpc.HandleNotFoundError(tp.ctx, err)
 	}
 	tkns, err := s.generateAndStoreTokens(tp)
-		if err != nil {
+	if err != nil {
 		return a, aphgrpc.HandleError(tp.ctx, err)
 	}
 	a = &auth.Auth{
