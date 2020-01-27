@@ -242,8 +242,8 @@ func (s *AuthService) generateBothTokens(gt *tokenParams) (*auth.Token, error) {
 	return tkns, nil
 }
 
-func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*tokenParams, error) {
-	tkn := &tokenParams{}
+func (s *AuthService) verifyTokens(ctx context.Context, t *auth.NewToken) (*jwt.Token, error) {
+	tkn := &jwt.Token{}
 	// if jwt exists, verify it is valid
 	if t.Token != "" {
 		_, err := s.jwtAuth.Verify(t.Token)
@@ -255,6 +255,15 @@ func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*to
 	r, err := s.jwtAuth.Verify(t.RefreshToken)
 	if err != nil {
 		return tkn, aphgrpc.HandleAuthenticationError(ctx, err)
+	}
+	return r, nil
+}
+
+func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*tokenParams, error) {
+	tkn := &tokenParams{}
+	r, err := s.verifyTokens(ctx, t)
+	if err != nil {
+		return tkn, aphgrpc.HandleError(ctx, err)
 	}
 	// get the claims from decoded refresh token
 	c := r.Claims.(jwt.MapClaims)
