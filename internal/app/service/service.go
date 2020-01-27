@@ -102,24 +102,11 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if provider == "orcid" {
 		id = u.ID
 	}
-	d, err := s.getUserAndIdentity(&tokenParams{
-		ctx: ctx, identity: id, provider: provider,
-	})
-	if err != nil {
-		return a, aphgrpc.HandleNotFoundError(ctx, err)
-	}
-	tkns, err := s.generateAndStoreTokens(&tokenParams{
+	a, err = s.createTokens(&tokenParams{
 		ctx: ctx, identity: id, provider: provider,
 	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
-	}
-	// return full Auth struct
-	a = &auth.Auth{
-		Token:        tkns.Token,
-		RefreshToken: tkns.RefreshToken,
-		User:         d.user,
-		Identity:     d.identity,
 	}
 	return a, nil
 }
@@ -135,24 +122,11 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
-	d, err := s.getUserAndIdentity(&tokenParams{
-		ctx: ctx, identity: v.identity, provider: v.provider,
-	})
-	if err != nil {
-		return a, aphgrpc.HandleNotFoundError(ctx, err)
-	}
-	tkns, err := s.generateAndStoreTokens(&tokenParams{
+	a, err = s.createTokens(&tokenParams{
 		ctx: ctx, identity: v.identity, provider: v.provider,
 	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
-	}
-	// return full Auth struct
-	a = &auth.Auth{
-		Token:        tkns.Token,
-		RefreshToken: tkns.RefreshToken,
-		User:         d.user,
-		Identity:     d.identity,
 	}
 	return a, nil
 }
@@ -283,4 +257,23 @@ func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*to
 		provider: provider,
 	}
 	return tkn, nil
+}
+
+func (s *AuthService) createTokens(tp *tokenParams) (*auth.Auth, error) {
+	a := &auth.Auth{}
+	d, err := s.getUserAndIdentity(tp)
+	if err != nil {
+		return a, aphgrpc.HandleNotFoundError(tp.ctx, err)
+	}
+	tkns, err := s.generateAndStoreTokens(tp)
+		if err != nil {
+		return a, aphgrpc.HandleError(tp.ctx, err)
+	}
+	a = &auth.Auth{
+		Token:        tkns.Token,
+		RefreshToken: tkns.RefreshToken,
+		User:         d.user,
+		Identity:     d.identity,
+	}
+	return a, nil
 }
