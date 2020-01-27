@@ -37,10 +37,10 @@ func GenerateKeys(c *cli.Context) error {
 	}
 	f, err := buildFiles(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("error building files %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("error building files %q", err), 2)
 	}
 	if err := encodeFiles(f); err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to write keys %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("unable to write keys %q", err), 2)
 	}
 	return nil
 }
@@ -58,7 +58,7 @@ func validateKeys(c *cli.Context) error {
 func Close(c io.Closer) error {
 	err := c.Close()
 	if err != nil {
-		return fmt.Errorf("unable to write public key %q\n", err)
+		return fmt.Errorf("unable to write public key %q", err)
 	}
 	return err
 }
@@ -68,12 +68,12 @@ func openFiles(c *cli.Context) (*files, error) {
 	prvWriter, err := os.Create(c.String("private"))
 	defer Close(prvWriter)
 	if err != nil {
-		return f, fmt.Errorf("unable to create private key file %q\n", err)
+		return f, fmt.Errorf("unable to create private key file %q", err)
 	}
 	pubWriter, err := os.Create(c.String("public"))
 	defer Close(pubWriter)
 	if err != nil {
-		return f, fmt.Errorf("unable to create public key file %q\n", err)
+		return f, fmt.Errorf("unable to create public key file %q", err)
 	}
 	f.prvWriter = prvWriter
 	f.pubWriter = pubWriter
@@ -84,15 +84,15 @@ func getKeyBytes() (*keyBytes, error) {
 	k := &keyBytes{}
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return k, fmt.Errorf("error in generating private key %q\n", err)
+		return k, fmt.Errorf("error in generating private key %q", err)
 	}
 	if err := private.Validate(); err != nil {
-		return k, fmt.Errorf("error in validating private key %q\n", err)
+		return k, fmt.Errorf("error in validating private key %q", err)
 	}
 	public := private.Public()
 	pubCont, err := x509.MarshalPKIXPublicKey(public)
 	if err != nil {
-		return k, fmt.Errorf("unable to marshall public key %q\n", err)
+		return k, fmt.Errorf("unable to marshall public key %q", err)
 	}
 	k.privateKey = x509.MarshalPKCS1PrivateKey(private)
 	k.publicKey = pubCont
@@ -104,12 +104,12 @@ func buildFiles(c *cli.Context) (*encodeParams, error) {
 	// open files
 	files, err := openFiles(c)
 	if err != nil {
-		return e, fmt.Errorf("unable to create file %q\n", err)
+		return e, fmt.Errorf("unable to create file %q", err)
 	}
 	// generate and write to files
 	keys, err := getKeyBytes()
 	if err != nil {
-		return e, fmt.Errorf("unable to generate key %q\n", err)
+		return e, fmt.Errorf("unable to generate key %q", err)
 	}
 	prvPem := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -129,10 +129,10 @@ func buildFiles(c *cli.Context) (*encodeParams, error) {
 
 func encodeFiles(e *encodeParams) error {
 	if err := pem.Encode(e.prvWriter, e.prvPem); err != nil {
-		return fmt.Errorf("unable to write private key %q\n", err)
+		return fmt.Errorf("unable to write private key %q", err)
 	}
 	if err := pem.Encode(e.pubWriter, e.pubPem); err != nil {
-		return fmt.Errorf("unable to write public key %q\n", err)
+		return fmt.Errorf("unable to write public key %q", err)
 	}
 	return nil
 }
