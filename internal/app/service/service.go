@@ -105,18 +105,8 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if err != nil {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// generate tokens
-	tkns, err := generateBothTokens(&GenerateTokens{
-		ctx: ctx, identity: id, provider: provider, j: s.jwtAuth,
-	})
+	tkns, err := s.generateAndStoreTokens(ctx, id, provider)
 	if err != nil {
-		return a, aphgrpc.HandleError(ctx, err)
-	}
-	// store refresh token in repository
-	if err := s.repo.SetToken(id, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
-		return a, aphgrpc.HandleInsertError(ctx, err)
-	}
-	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// return full Auth struct
@@ -145,7 +135,10 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	provider := fmt.Sprintf("%v", c["provider"])
 	// verify existence of refresh token in repository
 	h, err := s.repo.HasToken(identityStr)
-	if err != nil || !h {
+	if err != nil {
+		return a, aphgrpc.HandleGetError(ctx, err)
+	}
+	if !h {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	// get identity data
@@ -162,18 +155,8 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if err != nil {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// generate tokens
-	tkns, err := generateBothTokens(&GenerateTokens{
-		ctx: ctx, identity: identityStr, provider: provider, j: s.jwtAuth,
-	})
+	tkns, err := s.generateAndStoreTokens(ctx, identityStr, provider)
 	if err != nil {
-		return a, aphgrpc.HandleError(ctx, err)
-	}
-	// store refresh token in repository
-	if err := s.repo.SetToken(identityStr, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
-		return a, aphgrpc.HandleInsertError(ctx, err)
-	}
-	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
 	// return full Auth struct
@@ -195,13 +178,13 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if t.Token != "" {
 		_, err := s.jwtAuth.Verify(t.Token)
 		if err != nil {
-			return tkns, aphgrpc.HandleError(ctx, err)
+			return tkns, aphgrpc.HandleAuthenticationError(ctx, err)
 		}
 	}
 	// verify refresh token
 	r, err := s.jwtAuth.Verify(t.RefreshToken)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
+		return tkns, aphgrpc.HandleAuthenticationError(ctx, err)
 	}
 	// get the claims from decoded refresh token
 	c := r.Claims.(jwt.MapClaims)
@@ -209,21 +192,14 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	provider := fmt.Sprintf("%v", c["provider"])
 	// verify existence of refresh token in repository
 	h, err := s.repo.HasToken(identity)
-	if err != nil || !h {
+	if err != nil {
+		return tkns, aphgrpc.HandleGetError(ctx, err)
+	}
+	if !h {
 		return tkns, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// generate tokens
-	tkns, err = generateBothTokens(&GenerateTokens{
-		ctx: ctx, identity: identity, provider: provider, j: s.jwtAuth,
-	})
+	tkns, err = s.generateAndStoreTokens(ctx, identity, provider)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
-	}
-	// store refresh token in repository
-	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
-		return tkns, aphgrpc.HandleInsertError(ctx, err)
-	}
-	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
 	return tkns, nil
@@ -238,4 +214,39 @@ func (s *AuthService) Logout(ctx context.Context, t *auth.NewRefreshToken) (*emp
 		return e, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	return e, nil
+}
+
+func (s *AuthService) generateAndStoreTokens(ctx context.Context, identity string, provider string) (*auth.Token, error) {
+	// generate tokens
+	tkns, err := s.generateBothTokens(ctx, identity, provider)
+	if err != nil {
+		return tkns, aphgrpc.HandleError(ctx, err)
+	}
+	// store refresh token in repository
+	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
+		return tkns, aphgrpc.HandleInsertError(ctx, err)
+	}
+	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
+		return tkns, aphgrpc.HandleInsertError(ctx, err)
+	}
+	return tkns, nil
+}
+
+func (s *AuthService) generateBothTokens(ctx context.Context, identity string, provider string) (*auth.Token, error) {
+	tkns := &auth.Token{}
+	// generate new claims
+	jwtClaims := generateStandardClaims(jwtExpirationTimeInMins)
+	refTknClaims := generateRefreshTokenClaims(identity, provider)
+	// generate new JWT and refresh token to send back
+	tknStr, err := s.jwtAuth.Encode(jwtClaims)
+	if err != nil {
+		return tkns, aphgrpc.HandleError(ctx, err)
+	}
+	tkns.Token = tknStr
+	refTknStr, err := s.jwtAuth.Encode(refTknClaims)
+	if err != nil {
+		return tkns, aphgrpc.HandleError(ctx, err)
+	}
+	tkns.RefreshToken = refTknStr
+	return tkns, nil
 }
