@@ -46,19 +46,19 @@ type Connections struct {
 func RunServer(c *cli.Context) error {
 	conns, err := getConnections(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to connect to external service %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("Unable to connect to external service %q", err), 2)
 	}
 	clients, err := connectToGRPC(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to connect to grpc client %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("Unable to connect to grpc client %q", err), 2)
 	}
 	config, err := readSecretConfig(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to secret config file %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("Unable to read secret config file %q", err), 2)
 	}
 	jt, err := parseJwtKeys(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to parse keys %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("Unable to parse keys %q", err), 2)
 	}
 	grpcS := grpc.NewServer(
 		grpc_middleware.WithUnaryServerChain(
