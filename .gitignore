@@ -1,3 +1,6 @@
 .vscode
 cover.out
 ./modware-auth
+app.rsa
+app.rsa.pub
+app.json

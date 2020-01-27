@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "auth-api.fullname" . }}
+  labels:
+    app: {{ template "auth-api.fullname" . }}
+    chart: {{ template "auth-api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "auth-api.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "auth-api.fullname" . }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [
+            "--log-level",
+            "{{ .Values.logLevel }}",
+            "start-server",
+            "--public-key", 
+            "/etc/authfile/authserver.jwt.publicKey", 
+            "--private-key", 
+            "/etc/authfile/authserver.jwt.privateKey",
+            "--config", 
+            "/etc/authfile/authserver.oauth.configFile",
+            "--port",
+            "{{ .Values.service.port }}"            
+          ]
+          ports:
+            - name: {{ .Values.service.name }}
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          volumeMounts:
+            - name: oauth
+              mountPath: /etc/authfile
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: oauth
+          secret: 
+            secretName: {{ template "auth-api.name" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
