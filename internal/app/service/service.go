@@ -48,10 +48,15 @@ type ServiceParams struct {
 	Options         []aphgrpc.Option               `validate:"required"`
 }
 
-type generateTokens struct {
+type tokenParams struct {
 	ctx      context.Context
 	identity string
 	provider string
+}
+
+type userData struct {
+	user     *user.User
+	identity *identity.Identity
 }
 
 func defaultOptions() *aphgrpc.ServiceOptions {
@@ -97,21 +102,13 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if provider == "orcid" {
 		id = u.ID
 	}
-	// get identity data
-	idn, err := s.identity.GetIdentityFromProvider(ctx, &identity.IdentityProviderReq{
-		Identifier: id,
-		Provider:   provider,
+	d, err := s.getUserAndIdentity(&tokenParams{
+		ctx: ctx, identity: id, provider: provider,
 	})
 	if err != nil {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// get user data
-	uid := idn.Data.Attributes.UserId
-	ud, err := s.user.GetUser(ctx, &jsonapi.GetRequest{Id: uid})
-	if err != nil {
-		return a, aphgrpc.HandleNotFoundError(ctx, err)
-	}
-	tkns, err := s.generateAndStoreTokens(&generateTokens{
+	tkns, err := s.generateAndStoreTokens(&tokenParams{
 		ctx: ctx, identity: id, provider: provider,
 	})
 	if err != nil {
@@ -121,8 +118,8 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	a = &auth.Auth{
 		Token:        tkns.Token,
 		RefreshToken: tkns.RefreshToken,
-		User:         ud,
-		Identity:     idn,
+		User:         d.user,
+		Identity:     d.identity,
 	}
 	return a, nil
 }
@@ -149,21 +146,13 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if !h {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// get identity data
-	idn, err := s.identity.GetIdentityFromProvider(ctx, &identity.IdentityProviderReq{
-		Identifier: identityStr,
-		Provider:   provider,
+	d, err := s.getUserAndIdentity(&tokenParams{
+		ctx: ctx, identity: identityStr, provider: provider,
 	})
 	if err != nil {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	// get user data
-	uid := idn.Data.Attributes.UserId
-	ud, err := s.user.GetUser(ctx, &jsonapi.GetRequest{Id: uid})
-	if err != nil {
-		return a, aphgrpc.HandleNotFoundError(ctx, err)
-	}
-	tkns, err := s.generateAndStoreTokens(&generateTokens{
+	tkns, err := s.generateAndStoreTokens(&tokenParams{
 		ctx: ctx, identity: identityStr, provider: provider,
 	})
 	if err != nil {
@@ -173,8 +162,8 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	a = &auth.Auth{
 		Token:        tkns.Token,
 		RefreshToken: tkns.RefreshToken,
-		User:         ud,
-		Identity:     idn,
+		User:         d.user,
+		Identity:     d.identity,
 	}
 	return a, nil
 }
@@ -208,7 +197,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if !h {
 		return tkns, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	tkns, err = s.generateAndStoreTokens(&generateTokens{
+	tkns, err = s.generateAndStoreTokens(&tokenParams{
 		ctx: ctx, identity: identity, provider: provider,
 	})
 	if err != nil {
@@ -228,7 +217,28 @@ func (s *AuthService) Logout(ctx context.Context, t *auth.NewRefreshToken) (*emp
 	return e, nil
 }
 
-func (s *AuthService) generateAndStoreTokens(gt *generateTokens) (*auth.Token, error) {
+func (s *AuthService) getUserAndIdentity(gt *tokenParams) (*userData, error) {
+	d := &userData{}
+	// get identity data
+	idn, err := s.identity.GetIdentityFromProvider(gt.ctx, &identity.IdentityProviderReq{
+		Identifier: gt.identity,
+		Provider:   gt.provider,
+	})
+	if err != nil {
+		return d, aphgrpc.HandleNotFoundError(gt.ctx, err)
+	}
+	// get user data
+	uid := idn.Data.Attributes.UserId
+	ud, err := s.user.GetUser(gt.ctx, &jsonapi.GetRequest{Id: uid})
+	if err != nil {
+		return d, aphgrpc.HandleNotFoundError(gt.ctx, err)
+	}
+	d.identity = idn
+	d.user = ud
+	return d, nil
+}
+
+func (s *AuthService) generateAndStoreTokens(gt *tokenParams) (*auth.Token, error) {
 	// generate tokens
 	tkns, err := s.generateBothTokens(gt)
 	if err != nil {
@@ -244,7 +254,7 @@ func (s *AuthService) generateAndStoreTokens(gt *generateTokens) (*auth.Token, e
 	return tkns, nil
 }
 
-func (s *AuthService) generateBothTokens(gt *generateTokens) (*auth.Token, error) {
+func (s *AuthService) generateBothTokens(gt *tokenParams) (*auth.Token, error) {
 	tkns := &auth.Token{}
 	// generate new claims
 	jwtClaims := generateStandardClaims(jwtExpirationTimeInMins)
