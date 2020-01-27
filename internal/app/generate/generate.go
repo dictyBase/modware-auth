@@ -1,7 +1,6 @@
 package generate
 
 import (
-	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -13,14 +12,21 @@ import (
 	"github.com/urfave/cli"
 )
 
-type Files struct {
+type files struct {
 	prvWriter *os.File
 	pubWriter *os.File
 }
 
-type Keys struct {
-	privateKey *rsa.PrivateKey
-	publicKey  crypto.PublicKey
+type keyBytes struct {
+	privateKey []byte
+	publicKey  []byte
+}
+
+type encodeParams struct {
+	prvWriter *os.File
+	pubWriter *os.File
+	prvPem    *pem.Block
+	pubPem    *pem.Block
 }
 
 // Generate RSA public and private keys in PEM format
@@ -29,33 +35,12 @@ func GenerateKeys(c *cli.Context) error {
 	if err := validateKeys(c); err != nil {
 		return err
 	}
-	// open files
-	files, err := openFiles(c)
+	f, err := buildFiles(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to create file %q\n", err), 2)
+		return cli.NewExitError(fmt.Sprintf("error building files %q\n", err), 2)
 	}
-	// generate and write to files
-	keys, err := getKeys()
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to generate key %q\n", err), 2)
-	}
-	pubCont, err := x509.MarshalPKIXPublicKey(keys.publicKey)
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to marshall private key %q\n", err), 2)
-	}
-	prvPem := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(keys.privateKey),
-	}
-	pubPem := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: pubCont,
-	}
-	if err := pem.Encode(files.prvWriter, prvPem); err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to write private key %q\n", err), 2)
-	}
-	if err := pem.Encode(files.pubWriter, pubPem); err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to write public key %q\n", err), 2)
+	if err := encodeFiles(f); err != nil {
+		return cli.NewExitError(fmt.Sprintf("unable to write keys %q\n", err), 2)
 	}
 	return nil
 }
@@ -73,39 +58,81 @@ func validateKeys(c *cli.Context) error {
 func Close(c io.Closer) error {
 	err := c.Close()
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("unable to write public key %q\n", err), 2)
+		return fmt.Errorf("unable to write public key %q\n", err)
 	}
 	return err
 }
 
-func openFiles(c *cli.Context) (*Files, error) {
-	f := &Files{}
+func openFiles(c *cli.Context) (*files, error) {
+	f := &files{}
 	prvWriter, err := os.Create(c.String("private"))
 	defer Close(prvWriter)
 	if err != nil {
-		return f, cli.NewExitError(fmt.Sprintf("unable to create private key file %q\n", err), 2)
+		return f, fmt.Errorf("unable to create private key file %q\n", err)
 	}
 	pubWriter, err := os.Create(c.String("public"))
 	defer Close(pubWriter)
 	if err != nil {
-		return f, cli.NewExitError(fmt.Sprintf("unable to create public key file %q\n", err), 2)
+		return f, fmt.Errorf("unable to create public key file %q\n", err)
 	}
 	f.prvWriter = prvWriter
 	f.pubWriter = pubWriter
 	return f, nil
 }
 
-func getKeys() (*Keys, error) {
-	k := &Keys{}
+func getKeyBytes() (*keyBytes, error) {
+	k := &keyBytes{}
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return k, cli.NewExitError(fmt.Sprintf("error in generating private key %q\n", err), 2)
+		return k, fmt.Errorf("error in generating private key %q\n", err)
 	}
 	if err := private.Validate(); err != nil {
-		return k, cli.NewExitError(fmt.Sprintf("error in validating private key %q\n", err), 2)
+		return k, fmt.Errorf("error in validating private key %q\n", err)
 	}
 	public := private.Public()
-	k.privateKey = private
-	k.publicKey = public
+	pubCont, err := x509.MarshalPKIXPublicKey(public)
+	if err != nil {
+		return k, fmt.Errorf("unable to marshall public key %q\n", err)
+	}
+	k.privateKey = x509.MarshalPKCS1PrivateKey(private)
+	k.publicKey = pubCont
 	return k, nil
+}
+
+func buildFiles(c *cli.Context) (*encodeParams, error) {
+	e := &encodeParams{}
+	// open files
+	files, err := openFiles(c)
+	if err != nil {
+		return e, fmt.Errorf("unable to create file %q\n", err)
+	}
+	// generate and write to files
+	keys, err := getKeyBytes()
+	if err != nil {
+		return e, fmt.Errorf("unable to generate key %q\n", err)
+	}
+	prvPem := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: keys.privateKey,
+	}
+	pubPem := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: keys.publicKey,
+	}
+	return &encodeParams{
+		prvWriter: files.prvWriter,
+		pubWriter: files.pubWriter,
+		prvPem:    prvPem,
+		pubPem:    pubPem,
+	}, nil
+}
+
+func encodeFiles(e *encodeParams) error {
+	if err := pem.Encode(e.prvWriter, e.prvPem); err != nil {
+		return fmt.Errorf("unable to write private key %q\n", err)
+	}
+	if err := pem.Encode(e.pubWriter, e.pubPem); err != nil {
+		return fmt.Errorf("unable to write public key %q\n", err)
+	}
+	return nil
 }
