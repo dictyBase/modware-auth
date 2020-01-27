@@ -96,7 +96,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		ctx: ctx, provider: provider, login: l, providerSecrets: s.providerSecrets,
 	})
 	if err != nil {
-		return a, aphgrpc.HandleError(ctx, err)
+		return a, err
 	}
 	id := u.Email
 	if provider == "orcid" {
@@ -106,7 +106,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		ctx: ctx, identity: id, provider: provider,
 	})
 	if err != nil {
-		return a, aphgrpc.HandleError(ctx, err)
+		return a, err
 	}
 	return a, nil
 }
@@ -120,13 +120,13 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 		RefreshToken: l.RefreshToken,
 	})
 	if err != nil {
-		return a, aphgrpc.HandleError(ctx, err)
+		return a, err
 	}
 	a, err = s.createTokens(&tokenParams{
 		ctx: ctx, identity: v.identity, provider: v.provider,
 	})
 	if err != nil {
-		return a, aphgrpc.HandleError(ctx, err)
+		return a, err
 	}
 	return a, nil
 }
@@ -138,13 +138,13 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	}
 	v, err := s.validateTokens(ctx, t)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
+		return tkns, err
 	}
 	tkns, err = s.generateAndStoreTokens(&tokenParams{
 		ctx: ctx, identity: v.identity, provider: v.provider,
 	})
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
+		return tkns, err
 	}
 	return tkns, nil
 }
@@ -185,7 +185,7 @@ func (s *AuthService) generateAndStoreTokens(gt *tokenParams) (*auth.Token, erro
 	// generate tokens
 	tkns, err := s.generateBothTokens(gt)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(gt.ctx, err)
+		return tkns, err
 	}
 	// store refresh token in repository
 	if err := s.repo.SetToken(gt.identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
@@ -237,7 +237,7 @@ func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*to
 	tkn := &tokenParams{}
 	r, err := s.verifyTokens(ctx, t)
 	if err != nil {
-		return tkn, aphgrpc.HandleError(ctx, err)
+		return tkn, err
 	}
 	// get the claims from decoded refresh token
 	c := r.Claims.(jwt.MapClaims)
@@ -263,11 +263,11 @@ func (s *AuthService) createTokens(tp *tokenParams) (*auth.Auth, error) {
 	a := &auth.Auth{}
 	d, err := s.getUserAndIdentity(tp)
 	if err != nil {
-		return a, aphgrpc.HandleNotFoundError(tp.ctx, err)
+		return a, err
 	}
 	tkns, err := s.generateAndStoreTokens(tp)
 	if err != nil {
-		return a, aphgrpc.HandleError(tp.ctx, err)
+		return a, err
 	}
 	a = &auth.Auth{
 		Token:        tkns.Token,
