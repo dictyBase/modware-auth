@@ -48,6 +48,12 @@ type ServiceParams struct {
 	Options         []aphgrpc.Option               `validate:"required"`
 }
 
+type generateTokens struct {
+	ctx      context.Context
+	identity string
+	provider string
+}
+
 func defaultOptions() *aphgrpc.ServiceOptions {
 	return &aphgrpc.ServiceOptions{Resource: "auth"}
 }
@@ -105,7 +111,9 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 	if err != nil {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	tkns, err := s.generateAndStoreTokens(ctx, id, provider)
+	tkns, err := s.generateAndStoreTokens(&generateTokens{
+		ctx: ctx, identity: id, provider: provider,
+	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
@@ -155,7 +163,9 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if err != nil {
 		return a, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	tkns, err := s.generateAndStoreTokens(ctx, identityStr, provider)
+	tkns, err := s.generateAndStoreTokens(&generateTokens{
+		ctx: ctx, identity: identityStr, provider: provider,
+	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
@@ -198,7 +208,9 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if !h {
 		return tkns, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	tkns, err = s.generateAndStoreTokens(ctx, identity, provider)
+	tkns, err = s.generateAndStoreTokens(&generateTokens{
+		ctx: ctx, identity: identity, provider: provider,
+	})
 	if err != nil {
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
@@ -216,36 +228,36 @@ func (s *AuthService) Logout(ctx context.Context, t *auth.NewRefreshToken) (*emp
 	return e, nil
 }
 
-func (s *AuthService) generateAndStoreTokens(ctx context.Context, identity string, provider string) (*auth.Token, error) {
+func (s *AuthService) generateAndStoreTokens(gt *generateTokens) (*auth.Token, error) {
 	// generate tokens
-	tkns, err := s.generateBothTokens(ctx, identity, provider)
+	tkns, err := s.generateBothTokens(gt)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
+		return tkns, aphgrpc.HandleError(gt.ctx, err)
 	}
 	// store refresh token in repository
-	if err := s.repo.SetToken(identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
-		return tkns, aphgrpc.HandleInsertError(ctx, err)
+	if err := s.repo.SetToken(gt.identity, tkns.RefreshToken, time.Minute*refreshTokenExpirationTimeInMins); err != nil {
+		return tkns, aphgrpc.HandleInsertError(gt.ctx, err)
 	}
 	if err := s.publisher.PublishTokens(s.Topics["tokenCreate"], tkns); err != nil {
-		return tkns, aphgrpc.HandleInsertError(ctx, err)
+		return tkns, aphgrpc.HandleInsertError(gt.ctx, err)
 	}
 	return tkns, nil
 }
 
-func (s *AuthService) generateBothTokens(ctx context.Context, identity string, provider string) (*auth.Token, error) {
+func (s *AuthService) generateBothTokens(gt *generateTokens) (*auth.Token, error) {
 	tkns := &auth.Token{}
 	// generate new claims
 	jwtClaims := generateStandardClaims(jwtExpirationTimeInMins)
-	refTknClaims := generateRefreshTokenClaims(identity, provider)
+	refTknClaims := generateRefreshTokenClaims(gt.identity, gt.provider)
 	// generate new JWT and refresh token to send back
 	tknStr, err := s.jwtAuth.Encode(jwtClaims)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
+		return tkns, aphgrpc.HandleError(gt.ctx, err)
 	}
 	tkns.Token = tknStr
 	refTknStr, err := s.jwtAuth.Encode(refTknClaims)
 	if err != nil {
-		return tkns, aphgrpc.HandleError(ctx, err)
+		return tkns, aphgrpc.HandleError(gt.ctx, err)
 	}
 	tkns.RefreshToken = refTknStr
 	return tkns, nil
