@@ -129,8 +129,9 @@ func (s *AuthService) Relogin(ctx context.Context, l *auth.NewRelogin) (*auth.Au
 	if err := l.Validate(); err != nil {
 		return a, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
-	refreshToken := l.RefreshToken
-	v, err := s.validateRefreshToken(ctx, refreshToken)
+	v, err := s.validateTokens(ctx, &auth.NewToken{
+		RefreshToken: l.RefreshToken,
+	})
 	if err != nil {
 		return a, aphgrpc.HandleError(ctx, err)
 	}
@@ -161,15 +162,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 	if err := t.Validate(); err != nil {
 		return tkns, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
-	// if jwt exists, verify it is valid
-	if t.Token != "" {
-		_, err := s.jwtAuth.Verify(t.Token)
-		if err != nil {
-			return tkns, aphgrpc.HandleAuthenticationError(ctx, err)
-		}
-	}
-	refreshToken := t.RefreshToken
-	v, err := s.validateRefreshToken(ctx, refreshToken)
+	v, err := s.validateTokens(ctx, t)
 	if err != nil {
 		return tkns, aphgrpc.HandleError(ctx, err)
 	}
@@ -249,12 +242,19 @@ func (s *AuthService) generateBothTokens(gt *tokenParams) (*auth.Token, error) {
 	return tkns, nil
 }
 
-func (s *AuthService) validateRefreshToken(ctx context.Context, rt string) (*tokenParams, error) {
-	t := &tokenParams{}
+func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*tokenParams, error) {
+	tkn := &tokenParams{}
+	// if jwt exists, verify it is valid
+	if t.Token != "" {
+		_, err := s.jwtAuth.Verify(t.Token)
+		if err != nil {
+			return tkn, aphgrpc.HandleAuthenticationError(ctx, err)
+		}
+	}
 	// verify refresh token
-	r, err := s.jwtAuth.Verify(rt)
+	r, err := s.jwtAuth.Verify(t.RefreshToken)
 	if err != nil {
-		return t, aphgrpc.HandleAuthenticationError(ctx, err)
+		return tkn, aphgrpc.HandleAuthenticationError(ctx, err)
 	}
 	// get the claims from decoded refresh token
 	c := r.Claims.(jwt.MapClaims)
@@ -263,15 +263,15 @@ func (s *AuthService) validateRefreshToken(ctx context.Context, rt string) (*tok
 	// verify existence of refresh token in repository
 	h, err := s.repo.HasToken(identityStr)
 	if err != nil {
-		return t, aphgrpc.HandleGetError(ctx, err)
+		return tkn, aphgrpc.HandleGetError(ctx, err)
 	}
 	if !h {
-		return t, aphgrpc.HandleNotFoundError(ctx, err)
+		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
 	}
-	t = &tokenParams{
+	tkn = &tokenParams{
 		ctx:      ctx,
 		identity: identityStr,
 		provider: provider,
 	}
-	return t, nil
+	return tkn, nil
 }
