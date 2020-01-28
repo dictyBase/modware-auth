@@ -115,7 +115,7 @@ func readSecretConfig(c *cli.Context) (*oauth.ProviderSecrets, error) {
 }
 
 // Reads the public and private keys from their respective files and
-// stores them in the jwt handler.
+// creates a new JWTAuth instance.
 func parseJwtKeys(c *cli.Context) (*jwtauth.JWTAuth, error) {
 	ja := &jwtauth.JWTAuth{}
 	private, err := ioutil.ReadFile(c.String("private-key"))
@@ -143,20 +143,14 @@ func getConnections(c *cli.Context) (*Connections, error) {
 	redisAddr := fmt.Sprintf("%s:%s", c.String("redis-master-service-host"), c.String("redis-master-service-port"))
 	rrepo, err := redis.NewAuthRepo(redisAddr)
 	if err != nil {
-		return conn, cli.NewExitError(
-			fmt.Sprintf("cannot connect to redis auth repository %s", err.Error()),
-			2,
-		)
+		return conn, fmt.Errorf("cannot connect to redis auth repository %s", err)
 	}
 	ms, err := nats.NewPublisher(
 		c.String("nats-host"), c.String("nats-port"),
 		gnats.MaxReconnects(-1), gnats.ReconnectWait(2*time.Second),
 	)
 	if err != nil {
-		return conn, cli.NewExitError(
-			fmt.Sprintf("cannot connect to messaging server %s", err.Error()),
-			2,
-		)
+		return conn, fmt.Errorf("cannot connect to messaging server %s", err)
 	}
 	conn.authRepo = rrepo
 	conn.publisher = ms
@@ -168,20 +162,14 @@ func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 	clients := &ClientsGRPC{}
 	userAddr := fmt.Sprintf("%s:%s", c.String("user-grpc-host"), c.String("user-grpc-port"))
 	// establish grpc connections
-	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure())
+	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*3))
 	if err != nil {
-		return clients, cli.NewExitError(
-			fmt.Sprintf("cannot connect to grpc user microservice %s", err),
-			2,
-		)
+		return clients, fmt.Errorf("cannot connect to grpc user microservice %s", err)
 	}
 	idnAddr := fmt.Sprintf("%s:%s", c.String("identity-grpc-host"), c.String("identity-grpc-port"))
-	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure())
+	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*3))
 	if err != nil {
-		return clients, cli.NewExitError(
-			fmt.Sprintf("cannot connect to grpc identity microservice %s", err),
-			2,
-		)
+		return clients, fmt.Errorf("cannot connect to grpc identity microservice %s", err)
 	}
 	clients.userClient = user.NewUserServiceClient(uconn)
 	clients.identityClient = identity.NewIdentityServiceClient(iconn)
