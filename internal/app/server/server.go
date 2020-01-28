@@ -1,9 +1,9 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -16,7 +16,6 @@ import (
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/go-genproto/dictybaseapis/identity"
 	"github.com/dictyBase/go-genproto/dictybaseapis/user"
-	"github.com/dictyBase/modware-auth/internal/app/generate"
 	"github.com/dictyBase/modware-auth/internal/app/service"
 	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/modware-auth/internal/message/nats"
@@ -103,12 +102,11 @@ func RunServer(c *cli.Context) error {
 //	}
 func readSecretConfig(c *cli.Context) (*oauth.ProviderSecrets, error) {
 	var provider *oauth.ProviderSecrets
-	reader, err := os.Open(c.String("config"))
-	defer generate.Close(reader)
+	data, err := base64.StdEncoding.DecodeString(c.String("config"))
 	if err != nil {
 		return provider, err
 	}
-	if err := json.NewDecoder(reader).Decode(&provider); err != nil {
+	if err := json.Unmarshal(data, &provider); err != nil {
 		return provider, err
 	}
 	return provider, nil
@@ -118,7 +116,7 @@ func readSecretConfig(c *cli.Context) (*oauth.ProviderSecrets, error) {
 // creates a new JWTAuth instance.
 func parseJwtKeys(c *cli.Context) (*jwtauth.JWTAuth, error) {
 	ja := &jwtauth.JWTAuth{}
-	private, err := ioutil.ReadFile(c.String("private-key"))
+	private, err := base64.StdEncoding.DecodeString(c.String("private-key"))
 	if err != nil {
 		return ja, err
 	}
@@ -126,7 +124,7 @@ func parseJwtKeys(c *cli.Context) (*jwtauth.JWTAuth, error) {
 	if err != nil {
 		return ja, err
 	}
-	public, err := ioutil.ReadFile(c.String("public-key"))
+	public, err := base64.StdEncoding.DecodeString(c.String("public-key"))
 	if err != nil {
 		return ja, err
 	}
@@ -162,12 +160,12 @@ func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 	clients := &ClientsGRPC{}
 	userAddr := fmt.Sprintf("%s:%s", c.String("user-grpc-host"), c.String("user-grpc-port"))
 	// establish grpc connections
-	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*3))
+	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure())
 	if err != nil {
 		return clients, fmt.Errorf("cannot connect to grpc user microservice %s", err)
 	}
 	idnAddr := fmt.Sprintf("%s:%s", c.String("identity-grpc-host"), c.String("identity-grpc-port"))
-	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*3))
+	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure())
 	if err != nil {
 		return clients, fmt.Errorf("cannot connect to grpc identity microservice %s", err)
 	}
