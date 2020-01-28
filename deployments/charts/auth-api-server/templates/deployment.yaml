@@ -25,15 +25,25 @@ spec:
             "--log-level",
             "{{ .Values.logLevel }}",
             "start-server",
-            "--public-key", 
-            "/etc/authfile/authserver.jwt.publicKey", 
-            "--private-key", 
-            "/etc/authfile/authserver.jwt.privateKey",
-            "--config", 
-            "/etc/authfile/authserver.oauth.configFile",
             "--port",
             "{{ .Values.service.port }}"            
           ]
+          env:
+          - name: JWT_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: dictybase-configuration
+                key: auth.publickey
+          - name: JWT_PRIVATE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: dictybase-configuration
+                key: auth.privatekey
+          - name: OAUTH_CONFIG
+            valueFrom:
+              secretKeyRef:
+                name: dictybase-configuration
+                key: auth.config
           ports:
             - name: {{ .Values.service.name }}
               containerPort: {{ .Values.service.port }}
@@ -46,16 +56,6 @@ spec:
           #   httpGet:
           #     path: /
           #     port: http
-          volumeMounts:
-            - name: oauth
-              mountPath: /etc/authfile
-              readOnly: true
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      volumes:
-        - name: oauth
-          secret: 
-            secretName: {{ template "auth-api.name" . }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
