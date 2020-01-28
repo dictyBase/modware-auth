@@ -17,6 +17,9 @@ func ServerArgs(c *cli.Context) error {
 		"nats-port",
 		"redis-master-service-host",
 		"redis-master-service-port",
+		"config",
+		"pkey",
+		"prkey",
 	} {
 		if len(c.String(p)) == 0 {
 			return cli.NewExitError(
