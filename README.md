@@ -26,6 +26,66 @@
 
 dictyBase gRPC service for authorization server, generating and validating JWTs
 
+## Usage
+
+```
+NAME:
+   modware-auth - cli for modware-auth microservice
+
+USAGE:
+   app [global options] command [command options] [arguments...]
+
+VERSION:
+   1.0.0
+
+COMMANDS:
+   start-server   starts the modware-auth microservice with grpc backend
+   generate-keys  generate rsa key pairs (public and private keys) in pem format
+   help, h        Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --log-format value  format of the logging out, either of json or text. (default: "json")
+   --log-level value   log level for the application (default: "error")
+   --help, -h          show help
+   --version, -v       print the version
+```
+
+## Subcommands
+
+```
+NAME:
+   app start-server - starts the modware-auth microservice with grpc backend
+
+USAGE:
+   app start-server [command options] [arguments...]
+
+OPTIONS:
+   --config value, -c value            config file (required) [$OAUTH_CONFIG]
+   --pkey value, --public-key value    public key file for verifying jwt [$JWT_PUBLIC_KEY]
+   --private-key value, --prkey value  private key file for signing jwt [$JWT_PRIVATE_KEY]
+   --user-grpc-host value              user grpc host [$USER_API_SERVICE_HOST]
+   --user-grpc-port value              user grpc port [$USER_API_SERVICE_PORT]
+   --identity-grpc-host value          identity grpc host [$IDENTITY_API_SERVICE_HOST]
+   --identity-grpc-port value          identity grpc port [$IDENTITY_API_SERVICE_PORT]
+   --redis-master-service-host value   redis master grpc host [$REDIS_MASTER_SERVICE_HOST]
+   --redis-master-service-port value   redis master grpc port [$REDIS_MASTER_SERVICE_PORT]
+   --port value                        tcp port at which the server will be available (default: "9560")
+   --nats-host value                   nats messaging server host [$NATS_SERVICE_HOST]
+   --nats-port value                   nats messaging server port [$NATS_SERVICE_PORT]
+```
+
+```
+NAME:
+   app generate-keys - generate rsa key pairs (public and private keys) in pem format
+
+USAGE:
+   app generate-keys [command options] [arguments...]
+
+OPTIONS:
+   --private value, --pr value  output file name for private key
+   --public value, --pub value  output file name for public key
+```
+
 # API
 
 ### gRPC
