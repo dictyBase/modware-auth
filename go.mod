@@ -1,7 +1,7 @@
 module github.com/dictyBase/modware-auth
 
 require (
-	cloud.google.com/go v0.52.0 // indirect
+	cloud.google.com/go v0.50.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dictyBase/aphgrpc v1.3.0
@@ -26,9 +26,12 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli v1.22.2
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad // indirect
+	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82 // indirect
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
+	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/genproto v0.0.0-20200122232147-0452cf42e150 // indirect
-	google.golang.org/grpc v1.26.0
+	google.golang.org/grpc v1.25.1
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
