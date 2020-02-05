@@ -103,7 +103,7 @@ func (s *AuthService) Login(ctx context.Context, l *auth.NewLogin) (*auth.Auth, 
 		id = u.ID
 	}
 	a, err = s.createTokens(ctx, &tokenParams{
-		 identity: id, provider: provider,
+		identity: id, provider: provider,
 	})
 	if err != nil {
 		return a, err
