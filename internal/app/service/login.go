@@ -9,35 +9,34 @@ import (
 )
 
 type ProviderLogin struct {
-	ctx             context.Context
 	provider        string
 	login           *auth.NewLogin
 	providerSecrets oauth.ProviderSecrets
 }
 
-func getProviderLogin(p *ProviderLogin) (*user.NormalizedUser, error) {
+func getProviderLogin(ctx context.Context, p *ProviderLogin) (*user.NormalizedUser, error) {
 	u := &user.NormalizedUser{}
 	provider := p.provider
 	switch {
 	case provider == "orcid":
-		o, err := oauth.OrcidLogin(&oauth.Login{
-			Ctx: p.ctx, NewLogin: p.login, ClientSecret: p.providerSecrets.Orcid,
+		o, err := oauth.OrcidLogin(ctx, &oauth.Login{
+			NewLogin: p.login, ClientSecret: p.providerSecrets.Orcid,
 		})
 		if err != nil {
 			return u, err
 		}
 		return o, nil
 	case provider == "google":
-		g, err := oauth.GoogleLogin(&oauth.Login{
-			Ctx: p.ctx, NewLogin: p.login, ClientSecret: p.providerSecrets.Google,
+		g, err := oauth.GoogleLogin(ctx, &oauth.Login{
+			NewLogin: p.login, ClientSecret: p.providerSecrets.Google,
 		})
 		if err != nil {
 			return u, err
 		}
 		return g, nil
 	case provider == "linkedin":
-		li, err := oauth.LinkedInLogin(&oauth.Login{
-			Ctx: p.ctx, NewLogin: p.login, ClientSecret: p.providerSecrets.LinkedIn,
+		li, err := oauth.LinkedInLogin(ctx, &oauth.Login{
+			NewLogin: p.login, ClientSecret: p.providerSecrets.LinkedIn,
 		})
 		if err != nil {
 			return u, err
