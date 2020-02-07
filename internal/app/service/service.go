@@ -49,7 +49,6 @@ type ServiceParams struct {
 }
 
 type tokenParams struct {
-	ctx      context.Context
 	identity string
 	provider string
 }
@@ -141,7 +140,7 @@ func (s *AuthService) GetRefreshToken(ctx context.Context, t *auth.NewToken) (*a
 		return tkns, err
 	}
 	tkns, err = s.generateAndStoreTokens(ctx, &tokenParams{
-		ctx: ctx, identity: v.identity, provider: v.provider,
+		identity: v.identity, provider: v.provider,
 	})
 	if err != nil {
 		return tkns, err
@@ -172,7 +171,7 @@ func (s *AuthService) getUserAndIdentity(ctx context.Context, gt *tokenParams) (
 	}
 	// get user data
 	uid := idn.Data.Attributes.UserId
-	ud, err := s.user.GetUser(gt.ctx, &jsonapi.GetRequest{Id: uid})
+	ud, err := s.user.GetUser(ctx, &jsonapi.GetRequest{Id: uid})
 	if err != nil {
 		return d, aphgrpc.HandleNotFoundError(ctx, err)
 	}
@@ -252,7 +251,6 @@ func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*to
 		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	tkn = &tokenParams{
-		ctx:      ctx,
 		identity: identityStr,
 		provider: provider,
 	}
