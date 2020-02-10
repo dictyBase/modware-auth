@@ -240,8 +240,8 @@ func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*to
 	}
 	// get the claims from decoded refresh token
 	c := r.Claims.(jwt.MapClaims)
-	identityStr := fmt.Sprintf("%v", c["identity"])
-	provider := fmt.Sprintf("%v", c["provider"])
+	identityStr := fmt.Sprintf("%v", c["Identity"])
+	provider := fmt.Sprintf("%v", c["Provider"])
 	// verify existence of refresh token in repository
 	h, err := s.repo.HasToken(identityStr)
 	if err != nil {
