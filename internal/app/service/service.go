@@ -153,7 +153,14 @@ func (s *AuthService) Logout(ctx context.Context, t *auth.NewRefreshToken) (*emp
 	if err := t.Validate(); err != nil {
 		return e, aphgrpc.HandleInvalidParamError(ctx, err)
 	}
-	if err := s.repo.DeleteToken(t.RefreshToken); err != nil {
+	r, err := s.jwtAuth.Verify(t.RefreshToken)
+	if err != nil {
+		return e, aphgrpc.HandleAuthenticationError(ctx, err)
+	}
+	// get the claims from decoded refresh token
+	c := r.Claims.(jwt.MapClaims)
+	identityStr := fmt.Sprintf("%v", c["Identity"])
+	if err := s.repo.DeleteToken(identityStr); err != nil {
 		return e, aphgrpc.HandleNotFoundError(ctx, err)
 	}
 	return e, nil
