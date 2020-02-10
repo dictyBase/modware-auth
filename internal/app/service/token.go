@@ -8,11 +8,11 @@ import (
 )
 
 type RefreshTokenClaims struct {
-	// identity is used as an identifier for a user's identity data
+	// Identity is used as an identifier for a user's identity data
 	// (it is an ID for orcid, an email for others)
-	identity string
-	// provider is the login provider
-	provider string
+	Identity string
+	// Provider is the login provider
+	Provider string
 	// Standard JWT claims
 	jwt.StandardClaims
 }
