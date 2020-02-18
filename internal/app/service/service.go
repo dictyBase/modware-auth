@@ -255,7 +255,7 @@ func (s *AuthService) validateTokens(ctx context.Context, t *auth.NewToken) (*to
 		return tkn, aphgrpc.HandleGetError(ctx, err)
 	}
 	if !h {
-		return tkn, aphgrpc.HandleNotFoundError(ctx, err)
+		return tkn, aphgrpc.HandleNotFoundError(ctx, fmt.Errorf("refresh token %s not found", identityStr))
 	}
 	tkn = &tokenParams{
 		identity: identityStr,
