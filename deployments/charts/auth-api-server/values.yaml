@@ -1,6 +1,11 @@
-# Default values for golang.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Using this chart assumes that the following services are deployed:
+# - user api
+# - identity api
+# - redis
+#
+# It also assumes the dictybase-configuration chart has been deployed
+# with auth secrets (JWT private key, JWT public key, oauth config).
+
 replicaCount: 1
 
 image:
@@ -12,16 +17,6 @@ service:
   name: auth-api
   type: NodePort
   port: 9549
-
-## File name with public key(required)
-# publicKey:
-#
-## File name with private key(required)
-# privateKey:
-#
-## Name of configuration file(https://github.com/dictyBase/authserver#create-configuration-file) holding
-## client secrets for various provider(required)
-# configFile:
 
 # Level of log
 logLevel: debug
