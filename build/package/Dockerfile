@@ -9,7 +9,7 @@ COPY go.sum ./
 RUN go mod download
 ADD cmd cmd
 ADD internal internal
-RUN go build -o app cmd/modware-auth/main.go
+RUN CGO_ENABLED=0 go build -o app cmd/modware-auth/main.go
 
 FROM gcr.io/distroless/static
 COPY --from=0 /modware-auth/app /usr/local/bin/
