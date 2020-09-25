@@ -21,7 +21,7 @@ RUN go build \
     -installsuffix cgo \
     -tags netgo \
     -o /bin/app \
-    main.go
+    cmd/modware-auth/main.go
 RUN strip /bin/app \
     && upx -q -9 /bin/app
 
