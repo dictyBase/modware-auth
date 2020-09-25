@@ -10,7 +10,7 @@ require (
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mwitkow/go-proto-validators v0.3.0 // indirect
@@ -26,8 +26,6 @@ require (
 	github.com/urfave/cli v1.22.4
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82 // indirect
-	google.golang.org/genproto v0.0.0-20200122232147-0452cf42e150 // indirect
 	google.golang.org/grpc v1.32.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
