@@ -1,12 +1,11 @@
 # modware-auth
 
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](LICENSE)  
-![GitHub action](https://github.com/dictyBase/modware-auth/workflows/Test%20coverage/badge.svg)
+![GitHub action](https://github.com/dictyBase/modware-auth/workflows/Continuous%integration/badge.svg)
 [![codecov](https://codecov.io/gh/dictyBase/modware-auth/branch/develop/graph/badge.svg)](https://codecov.io/gh/dictyBase/modware-auth)  
 [![Technical debt](https://badgen.net/codeclimate/tech-debt/dictyBase/modware-auth)](https://codeclimate.com/github/dictyBase/modware-auth/trends/technical_debt)
 [![Issues](https://badgen.net/codeclimate/issues/dictyBase/modware-auth)](https://codeclimate.com/github/dictyBase/modware-auth/issues)
-[![Maintainability](https://api.codeclimate.com/v1/badges/21ed283a6186cfa3d003/maintainability)](https://codeclimate.com/github/dictyBase/modware-auth/maintainability)
-[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=dictyBase/modware-auth)](https://dependabot.com)  
+[![Maintainability](https://api.codeclimate.com/v1/badges/21ed283a6186cfa3d003/maintainability)](https://codeclimate.com/github/dictyBase/modware-auth/maintainability)  
 ![Issues](https://badgen.net/github/issues/dictyBase/modware-auth)
 ![Open Issues](https://badgen.net/github/open-issues/dictyBase/modware-auth)
 ![Closed Issues](https://badgen.net/github/closed-issues/dictyBase/modware-auth)  
