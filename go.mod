@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.7.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.34.0
