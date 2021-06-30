@@ -8,9 +8,8 @@ require (
 	github.com/dictyBase/go-genproto v0.0.0-20200122001226-b1ccbdee4aa3
 	github.com/go-playground/validator/v10 v10.5.0
 	github.com/go-redis/redis/v7 v7.4.0
-	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.5.2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mwitkow/go-proto-validators v0.3.0 // indirect
