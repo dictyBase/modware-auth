@@ -3,7 +3,7 @@ package jwtauth
 import (
 	"crypto/rsa"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // JWTAuth is a container for jwt authenticator manager

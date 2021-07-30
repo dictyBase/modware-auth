@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/rs/xid"
 	"github.com/stretchr/testify/assert"
 )
