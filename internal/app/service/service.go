@@ -28,6 +28,7 @@ const (
 
 // AuthService is the container for managing auth service definitions
 type AuthService struct {
+	auth.UnimplementedAuthServiceServer
 	*aphgrpc.Service
 	repo            repository.AuthRepository
 	publisher       message.Publisher
