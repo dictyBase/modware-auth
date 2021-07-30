@@ -11,7 +11,6 @@ import (
 
 	"github.com/dictyBase/modware-auth/internal/jwtauth"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
 	"github.com/dictyBase/go-genproto/dictybaseapis/identity"
@@ -22,6 +21,7 @@ import (
 	"github.com/dictyBase/modware-auth/internal/oauth"
 	"github.com/dictyBase/modware-auth/internal/repository"
 	"github.com/dictyBase/modware-auth/internal/repository/redis"
+	"github.com/golang-jwt/jwt"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"

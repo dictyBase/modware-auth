@@ -3,7 +3,7 @@ package jwtauth
 import (
 	"errors"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 var (

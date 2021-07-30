@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dictyBase/aphgrpc"
 	"github.com/dictyBase/go-genproto/dictybaseapis/api/jsonapi"
 	"github.com/dictyBase/go-genproto/dictybaseapis/auth"
@@ -18,6 +17,7 @@ import (
 	"github.com/dictyBase/modware-auth/internal/message"
 	"github.com/dictyBase/modware-auth/internal/oauth"
 	"github.com/dictyBase/modware-auth/internal/repository"
+	"github.com/golang-jwt/jwt"
 	"github.com/golang/protobuf/ptypes/empty"
 )
 
