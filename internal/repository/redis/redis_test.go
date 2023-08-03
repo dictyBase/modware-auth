@@ -10,12 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var redisAddr = fmt.Sprintf("%s:%s", os.Getenv("REDIS_MASTER_SERVICE_HOST"), os.Getenv("REDIS_MASTER_SERVICE_PORT"))
+var redisAddr = fmt.Sprintf(
+	"%s:%s",
+	os.Getenv("REDIS_MASTER_SERVICE_HOST"),
+	os.Getenv("REDIS_MASTER_SERVICE_PORT"),
+)
 
 // CheckRedisEnv checks for the presence of the following
 // environment variables
-//   REDIS_MASTER_SERVICE_HOST
-//   REDIS_MASTER_SERVICE_PORT
+//
+//	REDIS_MASTER_SERVICE_HOST
+//	REDIS_MASTER_SERVICE_PORT
 func CheckRedisEnv() error {
 	envs := []string{
 		"REDIS_MASTER_SERVICE_HOST",
@@ -35,8 +40,9 @@ type TestRedis struct {
 
 // NewTestRedisFromEnv is a constructor for TestRedis instance.
 // It expects the following environmental variables to be set.
-//   REDIS_MASTER_SERVICE_HOST
-//   REDIS_MASTER_SERVICE_PORT
+//
+//	REDIS_MASTER_SERVICE_HOST
+//	REDIS_MASTER_SERVICE_PORT
 func NewTestRedisFromEnv() (*TestRedis, error) {
 	tr := new(TestRedis)
 	if err := CheckRedisEnv(); err != nil {
