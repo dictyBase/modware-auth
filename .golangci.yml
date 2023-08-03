@@ -1,14 +1,31 @@
+run:
+  allow-parallel-runners: true
+linters-settings: 
+    gosec: 
+      excludes: 
+        - G402
+    staticcheck:
+      checks: ["all", "-SA5001"]
+    funlen:
+        lines: 80
+    revive:
+      rules:
+        - name: var-naming
+          arguments: [["ID"]]
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
   enable:
+    - asciicheck
     - bodyclose
-    - deadcode
+    - bidichk
+    - cyclop 
     - depguard
-    - dupl
+    - decorder
+    - dogsled
+    # - dupl
     - errcheck
     - funlen
-    - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
@@ -18,22 +35,20 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - lll
     - misspell
     - nakedret
-    - scopelint
+    - revive
     - staticcheck
-    - structcheck
-    - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
+
   # don't enable:
   # - godox
   # - maligned,prealloc
   # - gochecknoglobals
   # - golint
+  # - gochecknoinits
