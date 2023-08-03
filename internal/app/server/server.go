@@ -45,15 +45,24 @@ type Connections struct {
 func RunServer(c *cli.Context) error {
 	conns, err := getConnections(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to connect to external service %q", err), 2)
+		return cli.NewExitError(
+			fmt.Sprintf("Unable to connect to external service %q", err),
+			2,
+		)
 	}
 	clients, err := connectToGRPC(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to connect to grpc client %q", err), 2)
+		return cli.NewExitError(
+			fmt.Sprintf("Unable to connect to grpc client %q", err),
+			2,
+		)
 	}
 	config, err := readSecretConfig(c)
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("Unable to read secret config file %q", err), 2)
+		return cli.NewExitError(
+			fmt.Sprintf("Unable to read secret config file %q", err),
+			2,
+		)
 	}
 	jt, err := parseJwtKeys(c)
 	if err != nil {
@@ -96,10 +105,11 @@ func RunServer(c *cli.Context) error {
 
 // Reads the configuration file containing the various client secret keys
 // of the providers. The expected format will be ...
-//  {
-//		"google": "xxxxxxxxxxxx",
-//		"orcid": "xxxxxxxx",
-//	}
+//
+//	 {
+//			"google": "xxxxxxxxxxxx",
+//			"orcid": "xxxxxxxx",
+//		}
 func readSecretConfig(c *cli.Context) (*oauth.ProviderSecrets, error) {
 	var provider *oauth.ProviderSecrets
 	data, err := base64.StdEncoding.DecodeString(c.String("config"))
@@ -138,10 +148,17 @@ func parseJwtKeys(c *cli.Context) (*jwtauth.JWTAuth, error) {
 // get external connections to redis, nats
 func getConnections(c *cli.Context) (*Connections, error) {
 	conn := &Connections{}
-	redisAddr := fmt.Sprintf("%s:%s", c.String("redis-master-service-host"), c.String("redis-master-service-port"))
+	redisAddr := fmt.Sprintf(
+		"%s:%s",
+		c.String("redis-master-service-host"),
+		c.String("redis-master-service-port"),
+	)
 	rrepo, err := redis.NewAuthRepo(redisAddr)
 	if err != nil {
-		return conn, fmt.Errorf("cannot connect to redis auth repository %s", err)
+		return conn, fmt.Errorf(
+			"cannot connect to redis auth repository %s",
+			err,
+		)
 	}
 	ms, err := nats.NewPublisher(
 		c.String("nats-host"), c.String("nats-port"),
@@ -158,16 +175,30 @@ func getConnections(c *cli.Context) (*Connections, error) {
 // connect to necessary grpc clients
 func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 	clients := &ClientsGRPC{}
-	userAddr := fmt.Sprintf("%s:%s", c.String("user-grpc-host"), c.String("user-grpc-port"))
+	userAddr := fmt.Sprintf(
+		"%s:%s",
+		c.String("user-grpc-host"),
+		c.String("user-grpc-port"),
+	)
 	// establish grpc connections
 	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure())
 	if err != nil {
-		return clients, fmt.Errorf("cannot connect to grpc user microservice %s", err)
+		return clients, fmt.Errorf(
+			"cannot connect to grpc user microservice %s",
+			err,
+		)
 	}
-	idnAddr := fmt.Sprintf("%s:%s", c.String("identity-grpc-host"), c.String("identity-grpc-port"))
+	idnAddr := fmt.Sprintf(
+		"%s:%s",
+		c.String("identity-grpc-host"),
+		c.String("identity-grpc-port"),
+	)
 	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure())
 	if err != nil {
-		return clients, fmt.Errorf("cannot connect to grpc identity microservice %s", err)
+		return clients, fmt.Errorf(
+			"cannot connect to grpc identity microservice %s",
+			err,
+		)
 	}
 	clients.userClient = user.NewUserServiceClient(uconn)
 	clients.identityClient = identity.NewIdentityServiceClient(iconn)
