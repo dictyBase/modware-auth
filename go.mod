@@ -20,7 +20,7 @@ require (
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/rs/xid v1.3.0
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985 // indirect
