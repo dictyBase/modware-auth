@@ -6,7 +6,7 @@ require (
 	github.com/dictyBase/go-genproto v0.0.0-20210728232706-b7a70ac1e3c1
 	github.com/go-playground/validator/v10 v10.5.0
 	github.com/go-redis/redis/v7 v7.4.0
-	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.5.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
