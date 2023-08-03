@@ -66,12 +66,12 @@ func Close(c io.Closer) error {
 func openFiles(c *cli.Context) (*files, error) {
 	f := &files{}
 	prvWriter, err := os.Create(c.String("private"))
-	defer Close(prvWriter)
+	defer Close(prvWriter) //nolint:errcheck
 	if err != nil {
 		return f, fmt.Errorf("unable to create private key file %q", err)
 	}
 	pubWriter, err := os.Create(c.String("public"))
-	defer Close(pubWriter)
+	defer Close(pubWriter) //nolint:errcheck
 	if err != nil {
 		return f, fmt.Errorf("unable to create public key file %q", err)
 	}
