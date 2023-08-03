@@ -8,7 +8,7 @@ require (
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mwitkow/go-proto-validators v0.3.0 // indirect
