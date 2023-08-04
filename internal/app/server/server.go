@@ -29,6 +29,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -181,7 +182,8 @@ func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 		c.String("user-grpc-port"),
 	)
 	// establish grpc connections
-	uconn, err := grpc.Dial(userAddr, grpc.WithInsecure())
+	creds := insecure.NewCredentials()
+	uconn, err := grpc.Dial(userAddr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return clients, fmt.Errorf(
 			"cannot connect to grpc user microservice %s",
@@ -193,7 +195,7 @@ func connectToGRPC(c *cli.Context) (*ClientsGRPC, error) {
 		c.String("identity-grpc-host"),
 		c.String("identity-grpc-port"),
 	)
-	iconn, err := grpc.Dial(idnAddr, grpc.WithInsecure())
+	iconn, err := grpc.Dial(idnAddr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return clients, fmt.Errorf(
 			"cannot connect to grpc identity microservice %s",
