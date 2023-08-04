@@ -22,7 +22,6 @@ import (
 	"github.com/dictyBase/modware-auth/internal/repository"
 	"github.com/dictyBase/modware-auth/internal/repository/redis"
 	"github.com/golang-jwt/jwt"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	gnats "github.com/nats-io/go-nats"
@@ -70,7 +69,7 @@ func RunServer(c *cli.Context) error {
 		return cli.NewExitError(fmt.Sprintf("Unable to parse keys %q", err), 2)
 	}
 	grpcS := grpc.NewServer(
-		grpc_middleware.WithUnaryServerChain(
+		grpc.ChainUnaryInterceptor(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_logrus.UnaryServerInterceptor(getLogger(c)),
 		),
