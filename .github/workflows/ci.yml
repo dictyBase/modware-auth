@@ -65,6 +65,6 @@ jobs:
         with:
           push: true
           file: build/package/Dockerfile
-          tags: dictybase/modware-auth:${{ steps.branch.outputs.id }}-${{ steps.type.outputs.id }}
+          tags: dictybase/modware-auth:${{ steps.branch.outputs.id }}-${{ steps.sha.outputs.id }},dictybase/modware-auth:${{ steps.branch.outputs.id }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
