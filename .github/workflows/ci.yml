@@ -48,19 +48,20 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
-      - name: get short sha
-        id: sha
-        run: |
-          echo "id=$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_OUTPUT
-      - name: get current branch name
-        id: branch
-        run: |
-          echo "id=$(echo $GITHUB_REF_NAME | sed -e 's/\//-/')" >> $GITHUB_OUTPUT
+      - name: setup docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with: 
+          images: dictybase/modware-auth
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short,prefix={{branch}}-
       - name: docker build and push
         uses: docker/build-push-action@v4
         with:
           push: true
           file: build/package/Dockerfile
-          tags: dictybase/modware-auth:${{ steps.branch.outputs.id }}-${{ steps.sha.outputs.id }},dictybase/modware-auth:${{ steps.branch.outputs.id }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
