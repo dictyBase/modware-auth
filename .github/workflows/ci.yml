@@ -31,6 +31,7 @@ jobs:
   call-docker-build:
     needs: test
     uses: dictyBase/workflows/.github/workflows/docker-build-push.yaml@develop
+    secrets: inherit
     with:
       repository: ${{ github.action_repository }}
       ref: ${{ github.ref_name }}
