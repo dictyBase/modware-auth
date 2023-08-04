@@ -28,7 +28,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: ./profile.cov
-  call-docker-build:
+  call-docker-build-workflow:
     needs: test
     uses: dictyBase/workflows/.github/workflows/docker-build-push.yaml@develop
     secrets: inherit
