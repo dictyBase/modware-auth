@@ -1,7 +1,7 @@
 module github.com/dictyBase/modware-auth
 
 require (
-	github.com/dictyBase/aphgrpc v1.3.0
+	github.com/dictyBase/aphgrpc v1.4.2
 	github.com/dictyBase/go-genproto v0.0.0-20210728232706-b7a70ac1e3c1
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/go-redis/redis/v7 v7.4.0
