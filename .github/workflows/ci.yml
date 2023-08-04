@@ -30,7 +30,7 @@ jobs:
           file: ./profile.cov
   call-docker-build-workflow:
     needs: test
-    uses: dictyBase/workflows/.github/workflows/docker-build-push.yaml@develop
+    uses: dictyBase/workflows/.github/workflows/docker-build-push.yaml@7c8b0ed
     secrets: inherit
     with:
       repository: ${{ github.action_repository }}
